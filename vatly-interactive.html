@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vật Lý Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Lexend:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0e1a;
+  --panel: #111827;
+  --panel2: #1a2235;
+  --border: rgba(255,255,255,0.08);
+  --text: #f0f4ff;
+  --muted: #4a5568;
+  --cyan: #00e5ff;
+  --orange: #ff6b2b;
+  --green: #00e676;
+  --red: #ff1744;
+  --yellow: #ffe500;
+  --purple: #b388ff;
+  --gold: #ffd600;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Lexend',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+
+/* scanline overlay */
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px);pointer-events:none;z-index:999;}
+
+.screen{display:none;min-height:100vh;flex-direction:column;align-items:center;}
+.screen.active{display:flex;}
+
+/* ═══ HOME ═══ */
+#home{justify-content:center;padding:40px 20px;text-align:center;position:relative;}
+#home::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 30%,rgba(0,229,255,0.06),transparent 70%);pointer-events:none;}
+
+.home-badge{display:inline-block;font-family:'Space Mono',monospace;font-size:0.65rem;letter-spacing:0.2em;color:var(--cyan);border:1px solid rgba(0,229,255,0.3);padding:5px 16px;border-radius:2px;margin-bottom:20px;text-transform:uppercase;}
+.home-title{font-size:clamp(2.2rem,8vw,4.5rem);font-weight:800;line-height:1.05;margin-bottom:12px;letter-spacing:-0.02em;}
+.home-title .line1{color:var(--text);}
+.home-title .line2{color:var(--cyan);position:relative;}
+.home-title .line2::after{content:'';position:absolute;bottom:-4px;left:0;right:0;height:3px;background:var(--cyan);border-radius:2px;box-shadow:0 0 12px var(--cyan);}
+.home-sub{color:var(--muted);font-size:0.9rem;margin-top:16px;margin-bottom:48px;max-width:380px;line-height:1.6;}
+
+.mode-cards{display:flex;flex-direction:column;gap:12px;width:100%;max-width:480px;}
+.mode-card{display:flex;align-items:center;gap:16px;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px 20px;cursor:pointer;transition:all 0.25s;text-align:left;position:relative;overflow:hidden;}
+.mode-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:2px 0 0 2px;transition:all 0.25s;}
+.mode-card.sim::before{background:var(--cyan);}
+.mode-card.label::before{background:var(--orange);}
+.mode-card.path::before{background:var(--purple);}
+.mode-card:hover{transform:translateX(6px);border-color:rgba(255,255,255,0.15);}
+.mode-card.sim:hover{box-shadow:0 0 24px rgba(0,229,255,0.1);}
+.mode-card.label:hover{box-shadow:0 0 24px rgba(255,107,43,0.1);}
+.mode-card.path:hover{box-shadow:0 0 24px rgba(179,136,255,0.1);}
+.mc-icon{font-size:2rem;flex-shrink:0;}
+.mc-body{flex:1;}
+.mc-name{font-size:0.95rem;font-weight:800;margin-bottom:3px;}
+.mode-card.sim .mc-name{color:var(--cyan);}
+.mode-card.label .mc-name{color:var(--orange);}
+.mode-card.path .mc-name{color:var(--purple);}
+.mc-desc{font-size:0.72rem;color:var(--muted);line-height:1.4;}
+.mc-arrow{color:var(--muted);font-size:1.1rem;transition:transform 0.2s;}
+.mode-card:hover .mc-arrow{transform:translateX(4px);}
+
+.xp-strip{display:flex;gap:20px;margin-bottom:36px;}
+.xp-chip{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:10px 18px;text-align:center;}
+.xp-chip .v{font-family:'Space Mono',monospace;font-size:1.2rem;color:var(--gold);font-weight:700;}
+.xp-chip .l{font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-top:2px;}
+
+/* ═══ COMMON GAME HEADER ═══ */
+.g-top{width:100%;max-width:700px;display:flex;align-items:center;gap:10px;padding:16px 20px 0;}
+.btn-home{font-family:'Space Mono',monospace;font-size:0.72rem;background:var(--panel);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:7px 14px;cursor:pointer;transition:all 0.2s;letter-spacing:0.05em;}
+.btn-home:hover{color:var(--text);border-color:rgba(255,255,255,0.2);}
+.g-top-title{flex:1;text-align:center;font-family:'Space Mono',monospace;font-size:0.8rem;letter-spacing:0.12em;}
+.g-xp{font-family:'Space Mono',monospace;font-size:0.8rem;color:var(--gold);}
+
+/* ═══════════════════════════════
+   MODE 1 — SIMULATION
+═══════════════════════════════ */
+#sim-screen{padding:0 20px 48px;}
+.sim-tabs{display:flex;gap:8px;width:100%;max-width:700px;padding:16px 0 0;}
+.sim-tab{flex:1;font-family:'Space Mono',monospace;font-size:0.7rem;letter-spacing:0.1em;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--panel);color:var(--muted);cursor:pointer;transition:all 0.2s;}
+.sim-tab.active{background:var(--panel2);color:var(--cyan);border-color:rgba(0,229,255,0.4);}
+
+.sim-panel{display:none;width:100%;max-width:700px;margin-top:16px;}
+.sim-panel.active{display:block;}
+
+/* Archimedes sim */
+.arch-canvas-wrap{background:var(--panel);border:1px solid var(--border);border-radius:16px;overflow:hidden;position:relative;height:280px;margin-bottom:16px;}
+canvas#archCanvas{width:100%;height:100%;display:block;}
+
+.sim-controls{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.ctrl-group{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px 16px;}
+.ctrl-label{font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;}
+.ctrl-name{font-size:0.82rem;font-weight:700;margin-bottom:6px;}
+input[type=range]{width:100%;-webkit-appearance:none;height:4px;border-radius:2px;background:var(--panel2);outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--cyan);cursor:pointer;box-shadow:0 0 8px rgba(0,229,255,0.5);}
+.ctrl-val{font-family:'Space Mono',monospace;font-size:0.75rem;color:var(--cyan);margin-top:4px;}
+
+.arch-verdict{text-align:center;padding:14px;border-radius:12px;font-weight:700;font-size:0.95rem;margin-bottom:12px;transition:all 0.4s;}
+.arch-verdict.float{background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.3);color:var(--green);}
+.arch-verdict.sink{background:rgba(255,23,68,0.1);border:1px solid rgba(255,23,68,0.3);color:var(--red);}
+.arch-verdict.hover{background:rgba(255,229,0,0.1);border:1px solid rgba(255,229,0,0.3);color:var(--yellow);}
+
+.arch-formula{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px 16px;font-family:'Space Mono',monospace;font-size:0.78rem;line-height:1.8;}
+.formula-row{display:flex;justify-content:space-between;align-items:center;}
+.formula-row .label{color:var(--muted);}
+.formula-row .val{color:var(--cyan);}
+.formula-row.verdict .val{font-weight:700;}
+.formula-row.verdict.float .val{color:var(--green);}
+.formula-row.verdict.sink .val{color:var(--red);}
+.formula-row.verdict.hover-v .val{color:var(--yellow);}
+
+/* Circuit sim */
+.circuit-canvas-wrap{background:var(--panel);border:1px solid var(--border);border-radius:16px;overflow:hidden;position:relative;height:260px;margin-bottom:16px;}
+canvas#circuitCanvas{width:100%;height:100%;display:block;}
+
+.circuit-controls{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.circuit-info{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px 16px;}
+.ci-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);font-family:'Space Mono',monospace;font-size:0.75rem;}
+.ci-row:last-child{border-bottom:none;}
+.ci-row .lbl{color:var(--muted);}
+.ci-row .val{color:var(--orange);}
+.circuit-warn{text-align:center;padding:10px;border-radius:10px;font-size:0.82rem;margin-top:10px;display:none;}
+.circuit-warn.show{display:block;}
+.circuit-warn.danger{background:rgba(255,23,68,0.1);border:1px solid rgba(255,23,68,0.3);color:var(--red);}
+.circuit-warn.ok{background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.3);color:var(--green);}
+
+/* ═══════════════════════════════
+   MODE 2 — LABEL DIAGRAM
+═══════════════════════════════ */
+#label-screen{padding:0 20px 48px;}
+.label-tabs{display:flex;gap:8px;width:100%;max-width:700px;padding:16px 0 0;}
+.label-tab{flex:1;font-family:'Space Mono',monospace;font-size:0.68rem;letter-spacing:0.08em;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--panel);color:var(--muted);cursor:pointer;transition:all 0.2s;}
+.label-tab.active{background:var(--panel2);color:var(--orange);border-color:rgba(255,107,43,0.4);}
+
+.label-panel{display:none;width:100%;max-width:700px;margin-top:16px;}
+.label-panel.active{display:block;}
+
+.diagram-wrap{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px;position:relative;}
+.diagram-title{font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:16px;}
+
+canvas.diag-canvas{width:100%;display:block;border-radius:8px;}
+
+.label-score-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.label-score-row .prog-text{font-family:'Space Mono',monospace;font-size:0.75rem;color:var(--muted);}
+.label-score-row .pts{font-family:'Space Mono',monospace;font-size:0.82rem;color:var(--orange);}
+
+.options-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+.opt-btn{background:var(--panel);border:2px solid var(--border);border-radius:10px;padding:11px 10px;cursor:pointer;font-family:'Lexend',sans-serif;font-size:0.8rem;font-weight:600;color:var(--text);transition:all 0.18s;text-align:center;line-height:1.3;}
+.opt-btn:hover:not(:disabled){border-color:var(--orange);background:var(--panel2);}
+.opt-btn.correct{border-color:var(--green);background:rgba(0,230,118,0.1);color:var(--green);}
+.opt-btn.wrong{border-color:var(--red);background:rgba(255,23,68,0.1);color:var(--red);animation:wshake 0.4s ease;}
+.opt-btn:disabled{cursor:default;}
+@keyframes wshake{0%,100%{transform:translateX(0);}25%{transform:translateX(-5px);}75%{transform:translateX(5px);}}
+
+.label-feedback{padding:12px 16px;border-radius:10px;font-size:0.82rem;line-height:1.5;margin-bottom:12px;display:none;animation:fadeUp 0.3s;}
+.label-feedback.show{display:block;}
+.label-feedback.correct{background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.25);color:#7fffc4;}
+.label-feedback.wrong{background:rgba(255,23,68,0.08);border:1px solid rgba(255,23,68,0.25);color:#ff8a9a;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+
+.btn-next-label{width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--orange),#ff9d4d);color:#000;font-family:'Space Mono',monospace;font-size:0.8rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:none;letter-spacing:0.05em;}
+.btn-next-label.show{display:block;}
+.btn-next-label:hover{transform:scale(1.02);filter:brightness(1.1);}
+
+/* ═══════════════════════════════
+   MODE 3 — CHOOSE YOUR PATH
+═══════════════════════════════ */
+#path-screen{padding:0 20px 48px;}
+.path-header{width:100%;max-width:700px;display:flex;align-items:center;justify-content:space-between;padding:16px 0;}
+.path-progress{flex:1;margin:0 16px;}
+.path-prog-label{font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--muted);margin-bottom:5px;}
+.path-prog-track{background:var(--panel);border-radius:4px;height:4px;overflow:hidden;}
+.path-prog-fill{height:100%;background:linear-gradient(90deg,var(--purple),#e040fb);border-radius:4px;transition:width 0.5s ease;}
+.path-score-chip{font-family:'Space Mono',monospace;font-size:0.8rem;color:var(--purple);}
+
+.path-scene{width:100%;max-width:700px;}
+.scene-location{font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--purple);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:8px;}
+.scene-img-wrap{background:var(--panel);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:16px;position:relative;}
+canvas.scene-canvas{width:100%;display:block;}
+.scene-overlay-text{position:absolute;bottom:0;left:0;right:0;padding:14px 16px;background:linear-gradient(transparent,rgba(0,0,0,0.8));font-size:0.88rem;line-height:1.65;}
+.scene-overlay-text strong{color:var(--yellow);}
+.scene-overlay-text em{color:var(--cyan);font-style:normal;}
+
+.consequence-box{border-radius:12px;padding:14px 16px;margin-bottom:14px;font-size:0.84rem;line-height:1.55;display:none;animation:fadeUp 0.35s;}
+.consequence-box.show{display:block;}
+.consequence-box.wrong{background:rgba(255,23,68,0.08);border:1px solid rgba(255,23,68,0.3);color:#ff8a9a;}
+.consequence-box.correct{background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.3);color:#7fffc4;}
+.consequence-box .emoji{font-size:1.4rem;margin-bottom:6px;display:block;}
+
+.path-choices{display:flex;flex-direction:column;gap:9px;margin-bottom:14px;}
+.path-choice{background:var(--panel);border:2px solid var(--border);border-radius:12px;padding:13px 16px;cursor:pointer;font-family:'Lexend',sans-serif;font-size:0.86rem;font-weight:600;color:var(--text);text-align:left;transition:all 0.2s;line-height:1.4;display:flex;align-items:flex-start;gap:10px;}
+.path-choice:hover:not(:disabled):not(.wrong):not(.correct){border-color:var(--purple);background:var(--panel2);}
+.path-choice .choice-letter{font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--muted);flex-shrink:0;margin-top:2px;background:var(--panel2);padding:2px 7px;border-radius:4px;}
+.path-choice.correct{border-color:var(--green);background:rgba(0,230,118,0.08);}
+.path-choice.correct .choice-letter{color:var(--green);}
+.path-choice.wrong{border-color:var(--red);background:rgba(255,23,68,0.08);opacity:0.7;}
+.path-choice.wrong .choice-letter{color:var(--red);}
+.path-choice:disabled{cursor:default;}
+
+.btn-next-path{width:100%;padding:14px;border-radius:11px;border:none;background:linear-gradient(135deg,var(--purple),#e040fb);color:#000;font-family:'Space Mono',monospace;font-size:0.8rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:none;letter-spacing:0.05em;}
+.btn-next-path.show{display:block;}
+.btn-next-path:hover{transform:scale(1.02);}
+
+/* ═══ RESULT ═══ */
+#result{justify-content:center;padding:40px 20px;text-align:center;}
+.result-glow{font-size:5rem;margin-bottom:14px;animation:rpop 0.7s cubic-bezier(0.34,1.56,0.64,1);}
+@keyframes rpop{from{transform:scale(0) rotate(-20deg);}to{transform:scale(1) rotate(0deg);}}
+.result-mode-badge{display:inline-block;font-family:'Space Mono',monospace;font-size:0.65rem;letter-spacing:0.15em;padding:4px 16px;border-radius:2px;margin-bottom:12px;text-transform:uppercase;}
+.result-mode-badge.sim{color:var(--cyan);border:1px solid rgba(0,229,255,0.3);}
+.result-mode-badge.label{color:var(--orange);border:1px solid rgba(255,107,43,0.3);}
+.result-mode-badge.path{color:var(--purple);border:1px solid rgba(179,136,255,0.3);}
+.result-title{font-size:1.8rem;font-weight:800;letter-spacing:-0.02em;margin-bottom:8px;}
+.result-score{font-family:'Space Mono',monospace;font-size:3.2rem;color:var(--gold);margin-bottom:6px;}
+.result-msg{color:var(--muted);font-size:0.88rem;line-height:1.6;max-width:320px;margin:0 auto 32px;}
+.result-btns{display:flex;flex-direction:column;gap:10px;width:100%;max-width:280px;}
+.result-btn{padding:14px;border-radius:10px;border:none;font-family:'Space Mono',monospace;font-size:0.75rem;cursor:pointer;transition:all 0.2s;letter-spacing:0.06em;}
+.result-btn.primary{background:linear-gradient(135deg,var(--cyan),#00b8d9);color:#000;}
+.result-btn.secondary{background:var(--panel);color:var(--text);border:1px solid var(--border);}
+.result-btn:hover{transform:scale(1.02);}
+
+/* attempts indicator */
+.attempts{display:flex;gap:4px;margin-bottom:10px;}
+.att-dot{width:8px;height:8px;border-radius:50%;background:var(--panel2);transition:background 0.3s;}
+.att-dot.used{background:var(--red);}
+</style>
+</head>
+<body>
+
+<!-- ═══ HOME ═══ -->
+<div id="home" class="screen active">
+  <div class="home-badge">⚡ Vật Lý Lab · Interactive Edition</div>
+  <div class="home-title">
+    <div class="line1">Học Vật Lý</div>
+    <div class="line2">Bằng Thực Nghiệm</div>
+  </div>
+  <p class="home-sub">3 chế độ học tương tác: mô phỏng thí nghiệm, dán nhãn sơ đồ, và chọn con đường của riêng bạn.</p>
+
+  <div class="xp-strip">
+    <div class="xp-chip"><div class="v" id="h-xp">0</div><div class="l">Tổng XP</div></div>
+    <div class="xp-chip"><div class="v" id="h-streak">0🔥</div><div class="l">Streak</div></div>
+    <div class="xp-chip"><div class="v" id="h-games">0</div><div class="l">Lần chơi</div></div>
+  </div>
+
+  <div class="mode-cards">
+    <div class="mode-card sim" onclick="startSim()">
+      <div class="mc-icon">🔬</div>
+      <div class="mc-body">
+        <div class="mc-name">MÔ PHỎNG THÍ NGHIỆM</div>
+        <div class="mc-desc">Kéo thanh trượt · Xem vật nổi/chìm thời gian thực · Thay đổi điện áp và xem mạch thay đổi</div>
+      </div>
+      <div class="mc-arrow">→</div>
+    </div>
+    <div class="mode-card label" onclick="startLabel()">
+      <div class="mc-icon">🏷️</div>
+      <div class="mc-body">
+        <div class="mc-name">DÁN NHÃN SƠ ĐỒ</div>
+        <div class="mc-desc">Tap vào ô trống · Chọn đáp án đúng · Sơ đồ mạch điện và thí nghiệm mạ điện</div>
+      </div>
+      <div class="mc-arrow">→</div>
+    </div>
+    <div class="mode-card path" onclick="startPath()">
+      <div class="mc-icon">🗺️</div>
+      <div class="mc-body">
+        <div class="mc-name">CHỌN CON ĐƯỜNG</div>
+        <div class="mc-desc">Bạn là nhân vật · Quyết định sai → hậu quả thực · Học từ sai lầm · 5 tình huống</div>
+      </div>
+      <div class="mc-arrow">→</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SIMULATION ═══ -->
+<div id="sim-screen" class="screen">
+  <div class="g-top">
+    <button class="btn-home" onclick="goHome()">← HOME</button>
+    <div class="g-top-title" style="color:var(--cyan)">🔬 MÔ PHỎNG THÍ NGHIỆM</div>
+    <div class="g-xp">XP: <span id="sim-xp">0</span></div>
+  </div>
+
+  <div class="sim-tabs">
+    <button class="sim-tab active" onclick="switchSimTab('arch')">⚓ Archimedes</button>
+    <button class="sim-tab" onclick="switchSimTab('circuit')">⚡ Mạch Điện</button>
+  </div>
+
+  <!-- ARCHIMEDES -->
+  <div class="sim-panel active" id="sim-arch">
+    <div class="arch-canvas-wrap"><canvas id="archCanvas"></canvas></div>
+    <div class="sim-controls">
+      <div class="ctrl-group">
+        <div class="ctrl-label">Trọng lượng riêng VẬT</div>
+        <div class="ctrl-name" style="color:var(--orange)">d_vật (N/m³)</div>
+        <input type="range" id="dObj" min="2000" max="14000" value="7800" oninput="updateArch()">
+        <div class="ctrl-val" id="dObjVal">7800 N/m³ (Sắt)</div>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">Trọng lượng riêng CHẤT LỎNG</div>
+        <div class="ctrl-name" style="color:var(--cyan)">d_lỏng (N/m³)</div>
+        <input type="range" id="dLiq" min="800" max="14000" value="10000" oninput="updateArch()">
+        <div class="ctrl-val" id="dLiqVal">10000 N/m³ (Nước)</div>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">Thể tích vật</div>
+        <div class="ctrl-name" style="color:var(--yellow)">V (dm³)</div>
+        <input type="range" id="vol" min="1" max="20" value="10" oninput="updateArch()">
+        <div class="ctrl-val" id="volVal">10 dm³</div>
+      </div>
+      <div class="ctrl-group" style="display:flex;flex-direction:column;justify-content:center;">
+        <div class="arch-formula" id="arch-formula">
+          <div class="formula-row"><span class="label">FA =</span><span class="val" id="f-fa">—</span></div>
+          <div class="formula-row"><span class="label">P =</span><span class="val" id="f-p">—</span></div>
+          <div class="formula-row"><span class="label">FA / P =</span><span class="val" id="f-ratio">—</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="arch-verdict" id="arch-verdict">Điều chỉnh thanh trượt để xem kết quả!</div>
+  </div>
+
+  <!-- CIRCUIT -->
+  <div class="sim-panel" id="sim-circuit">
+    <div class="circuit-canvas-wrap"><canvas id="circuitCanvas"></canvas></div>
+    <div class="circuit-controls">
+      <div class="ctrl-group">
+        <div class="ctrl-label">Hiệu điện thế nguồn</div>
+        <div class="ctrl-name" style="color:var(--orange)">U (Vôn)</div>
+        <input type="range" id="voltage" min="0" max="24" value="9" oninput="updateCircuit()">
+        <div class="ctrl-val" id="voltageVal">9 V</div>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">Điện trở bóng đèn</div>
+        <div class="ctrl-name" style="color:var(--cyan)">R (Ôm)</div>
+        <input type="range" id="resistance" min="1" max="100" value="20" oninput="updateCircuit()">
+        <div class="ctrl-val" id="resistanceVal">20 Ω</div>
+      </div>
+    </div>
+    <div class="circuit-info">
+      <div class="ci-row"><span class="lbl">Cường độ dòng điện I =</span><span class="val" id="ci-current">—</span></div>
+      <div class="ci-row"><span class="lbl">Hiệu điện thế U =</span><span class="val" id="ci-voltage">—</span></div>
+      <div class="ci-row"><span class="lbl">Điện trở R =</span><span class="val" id="ci-resistance">—</span></div>
+      <div class="ci-row"><span class="lbl">Độ sáng bóng đèn =</span><span class="val" id="ci-bright">—</span></div>
+    </div>
+    <div class="circuit-warn" id="circuit-warn"></div>
+  </div>
+</div>
+
+<!-- ═══ LABEL DIAGRAM ═══ -->
+<div id="label-screen" class="screen">
+  <div class="g-top">
+    <button class="btn-home" onclick="goHome()">← HOME</button>
+    <div class="g-top-title" style="color:var(--orange)">🏷️ DÁN NHÃN SƠ ĐỒ</div>
+    <div class="g-xp">⭐ <span id="label-pts">0</span></div>
+  </div>
+
+  <div class="label-tabs">
+    <button class="label-tab active" onclick="switchLabelTab('circuit')">Mạch Điện</button>
+    <button class="label-tab" onclick="switchLabelTab('plating')">Mạ Điện</button>
+    <button class="label-tab" onclick="switchLabelTab('archimedes')">Archimedes</button>
+  </div>
+
+  <div class="label-panel active" id="lp-circuit">
+    <div class="diagram-wrap">
+      <div class="diagram-title">SƠ ĐỒ MẠCH ĐIỆN — Tap vào ô có số để trả lời</div>
+      <canvas class="diag-canvas" id="circuitDiag" height="300"></canvas>
+    </div>
+    <div class="label-score-row">
+      <span class="prog-text">Câu <span id="cq-num">1</span> / <span id="cq-total">6</span></span>
+      <span class="pts">+<span id="cq-pts">0</span> điểm</span>
+    </div>
+    <div class="attempts" id="cq-attempts"></div>
+    <div class="options-grid" id="cq-options"></div>
+    <div class="label-feedback" id="cq-feedback"></div>
+    <button class="btn-next-label" id="cq-next" onclick="nextCircuitQ()">TIẾP THEO →</button>
+  </div>
+
+  <div class="label-panel" id="lp-plating">
+    <div class="diagram-wrap">
+      <div class="diagram-title">MẠ ĐIỆN (MẠ NIKEN) — Tap vào ô có số để trả lời</div>
+      <canvas class="diag-canvas" id="platingDiag" height="300"></canvas>
+    </div>
+    <div class="label-score-row">
+      <span class="prog-text">Câu <span id="pq-num">1</span> / <span id="pq-total">5</span></span>
+      <span class="pts">+<span id="pq-pts">0</span> điểm</span>
+    </div>
+    <div class="attempts" id="pq-attempts"></div>
+    <div class="options-grid" id="pq-options"></div>
+    <div class="label-feedback" id="pq-feedback"></div>
+    <button class="btn-next-label" id="pq-next" onclick="nextPlatingQ()">TIẾP THEO →</button>
+  </div>
+
+  <div class="label-panel" id="lp-archimedes">
+    <div class="diagram-wrap">
+      <div class="diagram-title">LỰC ĐẨY ARCHIMEDES — Tap vào ô có số để trả lời</div>
+      <canvas class="diag-canvas" id="archDiag" height="300"></canvas>
+    </div>
+    <div class="label-score-row">
+      <span class="prog-text">Câu <span id="aq-num">1</span> / <span id="aq-total">5</span></span>
+      <span class="pts">+<span id="aq-pts">0</span> điểm</span>
+    </div>
+    <div class="attempts" id="aq-attempts"></div>
+    <div class="options-grid" id="aq-options"></div>
+    <div class="label-feedback" id="aq-feedback"></div>
+    <button class="btn-next-label" id="aq-next" onclick="nextArchQ()">TIẾP THEO →</button>
+  </div>
+</div>
+
+<!-- ═══ PATH ═══ -->
+<div id="path-screen" class="screen">
+  <div class="g-top">
+    <button class="btn-home" onclick="goHome()">← HOME</button>
+    <div class="g-top-title" style="color:var(--purple)">🗺️ CHỌN CON ĐƯỜNG</div>
+    <div class="g-xp" style="color:var(--purple)">⭐ <span id="path-score">0</span></div>
+  </div>
+  <div class="path-header" style="width:100%;max-width:700px;padding:8px 0 0;">
+    <div class="path-progress">
+      <div class="path-prog-label">Tình huống <span id="path-snum">1</span> / 5</div>
+      <div class="path-prog-track"><div class="path-prog-fill" id="path-prog" style="width:20%"></div></div>
+    </div>
+  </div>
+
+  <div class="path-scene" id="path-scene-wrap">
+    <div class="scene-location" id="scene-loc"></div>
+    <div class="scene-img-wrap">
+      <canvas class="scene-canvas" id="sceneCanvas" height="220"></canvas>
+      <div class="scene-overlay-text" id="scene-text"></div>
+    </div>
+    <div class="consequence-box" id="consequence-box"></div>
+    <div class="path-choices" id="path-choices"></div>
+    <button class="btn-next-path" id="path-next" onclick="nextPath()">TIẾP THEO →</button>
+  </div>
+</div>
+
+<!-- ═══ RESULT ═══ -->
+<div id="result" class="screen">
+  <div class="result-glow" id="r-emoji">🏆</div>
+  <div class="result-mode-badge" id="r-badge">MODE</div>
+  <div class="result-title" id="r-title">HOÀN THÀNH!</div>
+  <div class="result-score" id="r-score">100</div>
+  <div class="result-msg" id="r-msg"></div>
+  <div class="result-btns">
+    <button class="result-btn primary" id="r-replay">CHƠI LẠI</button>
+    <button class="result-btn secondary" onclick="goHome()">🏠 VỀ TRANG CHỦ</button>
+  </div>
+</div>
+
+<script>
+// ═══ STATE ═══
+const ST = {
+  xp: +localStorage.getItem('vl_xp')||0,
+  streak: +localStorage.getItem('vl_str')||0,
+  games: +localStorage.getItem('vl_gms')||0,
+  mode: null,
+  labelPts: 0,
+  pathScore: 0,
+  pathIdx: 0,
+  cqIdx: 0, cqPts: 0, cqAttempts: 0,
+  pqIdx: 0, pqPts: 0, pqAttempts: 0,
+  aqIdx: 0, aqPts: 0, aqAttempts: 0,
+};
+function save(){ localStorage.setItem('vl_xp',ST.xp); localStorage.setItem('vl_str',ST.streak); localStorage.setItem('vl_gms',ST.games); }
+function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); window.scrollTo(0,0); }
+function goHome(){ updateBanner(); show('home'); }
+function updateBanner(){ document.getElementById('h-xp').textContent=ST.xp; document.getElementById('h-streak').textContent=ST.streak+'🔥'; document.getElementById('h-games').textContent=ST.games; }
+
+// ═══════════════════════════════════════
+// SIM — ARCHIMEDES
+// ═══════════════════════════════════════
+function startSim(){ ST.mode='sim'; show('sim-screen'); setTimeout(()=>{ resizeCanvas('archCanvas'); resizeCanvas('circuitCanvas'); updateArch(); updateCircuit(); },50); }
+
+function resizeCanvas(id){ const c=document.getElementById(id); const w=c.parentElement.clientWidth; c.width=w; c.height=c.parentElement.clientHeight; }
+
+function switchSimTab(t){
+  document.querySelectorAll('.sim-tab').forEach((b,i)=>{ b.classList.toggle('active', (i===0&&t==='arch')||(i===1&&t==='circuit')); });
+  document.getElementById('sim-arch').classList.toggle('active',t==='arch');
+  document.getElementById('sim-circuit').classList.toggle('active',t==='circuit');
+  setTimeout(()=>{ resizeCanvas(t==='arch'?'archCanvas':'circuitCanvas'); if(t==='arch')updateArch(); else updateCircuit(); },30);
+}
+
+const MATERIALS = {2000:'Gỗ nhẹ',3000:'Gỗ nặng',5000:'Bê tông',7800:'Sắt/Thép',8900:'Đồng',11300:'Chì',14000:'Vàng'};
+const LIQUIDS = {800:'Dầu ăn',1000:'Nước lã',1030:'Nước biển',1260:'Mật ong',13600:'Thủy ngân (Hg)',14000:'Hg đặc'};
+
+function nearestLabel(val, map){ let best=Object.keys(map)[0]; Object.keys(map).forEach(k=>{ if(Math.abs(k-val)<Math.abs(best-val)) best=k; }); return map[best]||''; }
+
+function updateArch(){
+  const dObj = +document.getElementById('dObj').value;
+  const dLiq = +document.getElementById('dLiq').value;
+  const vol  = +document.getElementById('vol').value;
+  document.getElementById('dObjVal').textContent = dObj+' N/m³ ('+nearestLabel(dObj,MATERIALS)+')';
+  document.getElementById('dLiqVal').textContent = dLiq+' N/m³ ('+nearestLabel(dLiq,LIQUIDS)+')';
+  document.getElementById('volVal').textContent  = vol+' dm³';
+
+  const FA = dLiq * vol * 0.001; // N (vol in dm³ = 0.001 m³)
+  const P  = dObj * vol * 0.001;
+  const ratio = FA/P;
+
+  document.getElementById('f-fa').textContent = FA.toFixed(1)+' N';
+  document.getElementById('f-p').textContent  = P.toFixed(1)+' N';
+  document.getElementById('f-ratio').textContent = ratio.toFixed(3);
+
+  let state, verdict;
+  if(ratio > 1.01)      { state='float'; verdict='🟢 VẬT NỔI — FA > P (FA='+FA.toFixed(1)+'N > P='+P.toFixed(1)+'N)'; }
+  else if(ratio < 0.99) { state='sink';  verdict='🔴 VẬT CHÌM — FA < P (FA='+FA.toFixed(1)+'N < P='+P.toFixed(1)+'N)'; }
+  else                  { state='hover'; verdict='🟡 LƠ LỬNG — FA ≈ P (FA='+FA.toFixed(1)+'N ≈ P='+P.toFixed(1)+'N)'; }
+
+  document.getElementById('arch-verdict').className='arch-verdict '+state;
+  document.getElementById('arch-verdict').textContent = verdict;
+  drawArch(state, ratio, dObj, dLiq, vol);
+}
+
+function drawArch(state, ratio, dObj, dLiq, vol){
+  const c = document.getElementById('archCanvas');
+  const ctx = c.getContext('2d');
+  const W=c.width, H=c.height;
+  ctx.clearRect(0,0,W,H);
+
+  // background
+  ctx.fillStyle='#0a0e1a'; ctx.fillRect(0,0,W,H);
+
+  // tank
+  const tx=W*0.15, ty=H*0.1, tw=W*0.7, th=H*0.8;
+  ctx.strokeStyle='rgba(0,229,255,0.25)'; ctx.lineWidth=2;
+  ctx.strokeRect(tx,ty,tw,th);
+
+  // liquid
+  const liqH = th*0.65;
+  const liqY = ty+th-liqH;
+  const liqAlpha = Math.min(0.8, 0.3 + dLiq/20000);
+  ctx.fillStyle=`rgba(0,150,255,${liqAlpha * 0.35})`;
+  ctx.fillRect(tx+1,liqY,tw-2,liqH-1);
+
+  // liquid label
+  ctx.fillStyle='rgba(0,229,255,0.5)'; ctx.font='bold 11px Space Mono,monospace';
+  ctx.textAlign='left'; ctx.fillText('d_lỏng = '+dLiq+' N/m³', tx+8, liqY+16);
+
+  // object size based on vol
+  const objSize = Math.max(24, Math.min(80, 24 + vol*2.5));
+  const cx = tx+tw/2;
+
+  // position based on state
+  let objY;
+  if(state==='float'){
+    // floating: partly above liquid surface
+    const subFrac = Math.min(0.95, dObj/dLiq);
+    objY = liqY - objSize*(1-subFrac) - 4;
+  } else if(state==='sink'){
+    objY = ty+th - objSize - 8;
+  } else {
+    // hover
+    objY = liqY + liqH*0.3;
+  }
+
+  // draw object
+  const grd = ctx.createRadialGradient(cx, objY+objSize/2, 2, cx, objY+objSize/2, objSize);
+  if(state==='float')      grd.addColorStop(0,'#00e676'); grd.addColorStop(1,'#00695c');
+  else if(state==='sink')  { grd.addColorStop(0,'#ff5252'); grd.addColorStop(1,'#b71c1c'); }
+  else                     { grd.addColorStop(0,'#ffe500'); grd.addColorStop(1,'#f57f17'); }
+
+  ctx.fillStyle=grd;
+  ctx.beginPath(); ctx.roundRect(cx-objSize/2, objY, objSize, objSize, 6); ctx.fill();
+
+  // object label
+  ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.font='bold 10px Space Mono,monospace'; ctx.textAlign='center';
+  ctx.fillText('d='+dObj, cx, objY+objSize/2+4);
+
+  // force arrows
+  const arrowX = cx + objSize/2 + 20;
+  const midObjY = objY + objSize/2;
+
+  // FA arrow (up)
+  drawArrow(ctx, arrowX, midObjY + 20, arrowX, midObjY - 20, '#00e676', 'FA');
+  // P arrow (down)
+  drawArrow(ctx, arrowX+30, midObjY - 20, arrowX+30, midObjY + 20, '#ff5252', 'P');
+
+  // bubble effect for floating
+  if(state==='float'){
+    for(let i=0;i<5;i++){
+      const bx=tx+20+Math.random()*tw*0.6, by=liqY+Math.random()*liqH;
+      ctx.beginPath(); ctx.arc(bx,by,2,0,Math.PI*2);
+      ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.fill();
+    }
+  }
+}
+
+function drawArrow(ctx,x1,y1,x2,y2,color,label){
+  ctx.strokeStyle=color; ctx.lineWidth=2.5; ctx.fillStyle=color;
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  // arrowhead
+  const angle=Math.atan2(y2-y1,x2-x1);
+  ctx.beginPath();
+  ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-8*Math.cos(angle-0.4),y2-8*Math.sin(angle-0.4));
+  ctx.lineTo(x2-8*Math.cos(angle+0.4),y2-8*Math.sin(angle+0.4));
+  ctx.closePath(); ctx.fill();
+  ctx.font='bold 10px Space Mono,monospace'; ctx.textAlign='center';
+  ctx.fillText(label, x2+12, y2);
+}
+
+// ═══════════════════════════════════════
+// SIM — CIRCUIT
+// ═══════════════════════════════════════
+function updateCircuit(){
+  const U = +document.getElementById('voltage').value;
+  const R = +document.getElementById('resistance').value;
+  document.getElementById('voltageVal').textContent = U+' V';
+  document.getElementById('resistanceVal').textContent = R+' Ω';
+  const I = R>0 ? (U/R) : 0;
+  const bright = Math.min(100, Math.round(I*100/1.5));
+  document.getElementById('ci-current').textContent = I.toFixed(3)+' A = '+(I*1000).toFixed(1)+' mA';
+  document.getElementById('ci-voltage').textContent = U+' V';
+  document.getElementById('ci-resistance').textContent = R+' Ω';
+  document.getElementById('ci-bright').textContent = bright+'% 💡';
+  const warn = document.getElementById('circuit-warn');
+  if(U===0){ warn.className='circuit-warn show ok'; warn.textContent='⚡ Không có điện áp → không có dòng điện → đèn tắt (I = 0A)'; }
+  else if(I>1){ warn.className='circuit-warn show danger'; warn.textContent='⚠️ Dòng điện quá lớn ('+I.toFixed(2)+'A)! Có thể làm cháy bóng đèn. Tăng điện trở R lên!'; }
+  else { warn.className='circuit-warn show ok'; warn.textContent='✅ Mạch hoạt động bình thường. I='+I.toFixed(3)+'A — công thức: I = U ÷ R = '+U+' ÷ '+R; }
+  drawCircuit(U,R,I,bright);
+}
+
+function drawCircuit(U,R,I,bright){
+  const c=document.getElementById('circuitCanvas');
+  const ctx=c.getContext('2d');
+  const W=c.width,H=c.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#0a0e1a'; ctx.fillRect(0,0,W,H);
+
+  // layout: simple series circuit
+  const pad=40, bw=W-pad*2, bh=H-pad*2;
+  const cx=pad+bw/2, cy=pad+bh/2;
+  const rx=bw*0.38, ry=bh*0.38;
+
+  // wire path (rectangle)
+  const pts=[
+    [cx-rx, cy-ry],[cx+rx, cy-ry],
+    [cx+rx, cy+ry],[cx-rx, cy+ry]
+  ];
+
+  // animated current flow
+  const flowColor = I>0 ? `rgba(255,107,43,${Math.min(1,I*2)})` : 'rgba(100,100,100,0.3)';
+  ctx.strokeStyle=flowColor; ctx.lineWidth=3; ctx.setLineDash([8,6]);
+  ctx.lineDashOffset = -(Date.now()/30)%14;
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0],pts[0][1]);
+  pts.forEach(p=>ctx.lineTo(p[0],p[1]));
+  ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
+
+  // Battery (left side)
+  const bx=cx-rx, by1=cy-ry*0.35, by2=cy+ry*0.35;
+  ctx.strokeStyle='rgba(0,229,255,0.8)'; ctx.lineWidth=2;
+  // battery body
+  ctx.beginPath(); ctx.roundRect(bx-16,by1,32,by2-by1,4); ctx.stroke();
+  ctx.fillStyle='rgba(0,229,255,0.1)'; ctx.fill();
+  ctx.fillStyle='rgba(0,229,255,0.9)'; ctx.font='bold 11px Space Mono,monospace'; ctx.textAlign='center';
+  ctx.fillText(U+'V', bx, cy+4);
+  ctx.fillStyle='rgba(0,229,255,0.6)'; ctx.font='10px Space Mono,monospace';
+  ctx.fillText('(+)', bx, by1-6);
+  ctx.fillText('(−)', bx, by2+14);
+
+  // Bulb (right side)
+  const lx=cx+rx, ly=cy;
+  const lAlpha=bright/100;
+  // glow
+  if(bright>0){
+    const glw=ctx.createRadialGradient(lx,ly,5,lx,ly,35+bright*0.4);
+    glw.addColorStop(0,`rgba(255,229,0,${lAlpha*0.6})`);
+    glw.addColorStop(1,'transparent');
+    ctx.fillStyle=glw; ctx.beginPath(); ctx.arc(lx,ly,40,0,Math.PI*2); ctx.fill();
+  }
+  ctx.strokeStyle=`rgba(255,229,${bright>0?0:100},0.9)`; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(lx,ly,18,0,Math.PI*2); ctx.stroke();
+  ctx.fillStyle=`rgba(255,229,0,${lAlpha*0.4})`; ctx.fill();
+  // bulb filament
+  ctx.strokeStyle=`rgba(255,${150+bright},0,${0.5+lAlpha*0.5})`; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(lx-6,ly+6); ctx.lineTo(lx-2,ly); ctx.lineTo(lx+2,ly+4); ctx.lineTo(lx+6,ly-2); ctx.stroke();
+  ctx.fillStyle='rgba(255,229,0,0.8)'; ctx.font='bold 10px Space Mono,monospace'; ctx.textAlign='center';
+  ctx.fillText(bright+'%', lx, ly+32);
+
+  // Ammeter (top)
+  const ax=cx, ay=cy-ry;
+  ctx.strokeStyle='rgba(0,230,118,0.8)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(ax,ay,14,0,Math.PI*2); ctx.stroke();
+  ctx.fillStyle='rgba(0,230,118,0.1)'; ctx.fill();
+  ctx.fillStyle='rgba(0,230,118,0.9)'; ctx.font='bold 12px Space Mono,monospace'; ctx.textAlign='center';
+  ctx.fillText('A', ax, ay+4);
+  ctx.fillStyle='rgba(0,230,118,0.6)'; ctx.font='9px Space Mono,monospace';
+  ctx.fillText(I.toFixed(2)+'A', ax, ay+24);
+
+  // labels
+  ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.font='9px Lexend,sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText('Nguồn điện', cx-rx, cy-ry-28);
+  ctx.fillText('Bóng đèn', cx+rx, cy-ry-10);
+  ctx.fillText('Ampe kế', cx, cy-ry-28);
+
+  requestAnimationFrame(()=>{ if(document.getElementById('sim-circuit').classList.contains('active')) updateCircuit(); });
+}
+
+// ═══════════════════════════════════════
+// LABEL — CIRCUIT DIAGRAM
+// ═══════════════════════════════════════
+const CQ = [
+  { highlight:0, question:"Ký hiệu ① trong mạch điện là bộ phận nào?", options:["Ampe kế (A)","Vôn kế (V)","Nguồn điện","Bóng đèn"], answer:2, exp:"① là NGUỒN ĐIỆN (pin/acquy). Trong sơ đồ mạch, nguồn điện ký hiệu bằng hình chữ nhật có hai đường dài ngắn xen kẽ, hoặc hình oval."},
+  { highlight:1, question:"Bộ phận ② đo đại lượng nào và mắc như thế nào?", options:["Đo U — mắc song song","Đo I — mắc nối tiếp","Đo R — mắc nối tiếp","Đo P — mắc song song"], answer:1, exp:"② là AMPE KẾ — đo cường độ dòng điện I (đơn vị A). Phải mắc NỐI TIẾP để toàn bộ dòng điện đi qua nó."},
+  { highlight:2, question:"Bộ phận ③ là gì và mắc như thế nào với bóng đèn?", options:["Ampe kế — nối tiếp","Vôn kế — song song với bóng đèn","Nguồn điện — nối tiếp","Điện trở — nối tiếp"], answer:1, exp:"③ là VÔN KẾ — đo hiệu điện thế U (đơn vị V). Phải mắc SONG SONG với bóng đèn để đo điện áp hai đầu."},
+  { highlight:3, question:"Bộ phận ④ trong sơ đồ là gì?", options:["Nguồn điện","Ampe kế","Bóng đèn (tải)","Công tắc"], answer:3, exp:"④ là BÓNG ĐÈN — tải điện tiêu thụ năng lượng. Dòng điện qua sợi tóc (hay LED) chuyển điện năng thành quang năng."},
+  { highlight:4, question:"Chiều mũi tên ⑤ trong mạch điện biểu thị điều gì?", options:["Chiều electron chuyển động","Chiều dòng điện quy ước: từ cực (+) ra mạch ngoài về cực (−)","Chiều lực từ trường","Chiều truyền nhiệt"], answer:1, exp:"⑤ là CHIỀU DÒNG ĐIỆN QUY ƯỚC — từ cực dương (+) qua mạch ngoài về cực âm (−). Ngược chiều chuyển động thực của electron."},
+  { highlight:5, question:"Công tắc ⑥ có chức năng gì?", options:["Đo điện áp","Tăng cường độ dòng điện","Đóng/ngắt mạch điện","Điều chỉnh điện trở"], answer:2, exp:"⑥ là CÔNG TẮC — dùng để đóng (nối thông) hoặc ngắt (cắt đứt) mạch điện. Khi ngắt → không có dòng điện chạy."},
+];
+
+const PQ = [
+  { highlight:0, question:"Vật ① (chìa khóa thép) phải nối với cực nào của nguồn điện?", options:["Cực dương (+)","Cực âm (−)","Không cần nối","Nối cả hai cực"], answer:1, exp:"Vật cần mạ nối cực ÂM (−) — catot. Ion kim loại mang điện (+) sẽ bị hút về phía (−) và bám lên bề mặt vật."},
+  { highlight:1, question:"Tấm ② (Niken nguyên chất) nối với cực nào?", options:["Cực âm (−)","Cực dương (+)","Không cần nối","Nguồn xoay chiều"], answer:1, exp:"Tấm Niken nối cực DƯƠNG (+) — anot. Niken sẽ tan ra thành ion Ni²⁺ đi vào dung dịch, rồi bám lên catot."},
+  { highlight:2, question:"Bình ③ chứa chất gì trong quá trình mạ Niken?", options:["Nước lã","Dung dịch muối Niken (NiSO₄)","Dầu nhớt","Axit sulfuric loãng"], answer:1, exp:"Bình ③ chứa DUNG DỊCH MUỐI NIKEN (thường là NiSO₄). Ion Ni²⁺ trong dung dịch sẽ bám lên catot (chìa khóa) khi có dòng điện."},
+  { highlight:3, question:"Mũi tên ④ biểu thị sự di chuyển của gì?", options:["Electron từ (−) sang (+)","Ion Niken Ni²⁺ từ anot (+) sang catot (−)","Dòng nhiệt","Ánh sáng"], answer:1, exp:"④ biểu thị ION NIKEN (Ni²⁺) di chuyển từ anot (+) qua dung dịch sang catot (−) và bám lên bề mặt chìa khóa. Đây là tác dụng HÓA HỌC của dòng điện."},
+  { highlight:4, question:"Lớp ⑤ hình thành trên bề mặt chìa khóa là gì?", options:["Lớp sắt","Lớp Niken (Ni) mỏng bám vào","Lớp oxit","Lớp muối"], answer:1, exp:"⑤ là LỚP NIKEN mỏng bám lên bề mặt chìa khóa thép. Lớp này bảo vệ chìa khóa khỏi gỉ sét và tạo vẻ sáng bóng."},
+];
+
+const AQ = [
+  { highlight:0, question:"Mũi tên ① chỉ lực nào tác dụng vào vật?", options:["Trọng lực (P) — hướng xuống","Lực đẩy Archimedes (FA) — hướng lên","Lực ma sát","Lực căng mặt ngoài"], answer:1, exp:"① là LỰC ĐẨY ARCHIMEDES (FA) — hướng THẲNG ĐỨNG TỪ DƯỚI LÊN. Đây là lực của chất lỏng tác dụng vào vật bị nhúng chìm."},
+  { highlight:1, question:"Mũi tên ② biểu thị lực nào?", options:["Lực đẩy Archimedes","Trọng lực P của vật — hướng xuống","Lực nổi","Lực căng sợi dây"], answer:1, exp:"② là TRỌNG LỰC P = d_vật × V_vật — hướng THẲNG ĐỨNG XUỐNG DƯỚI. P là trọng lượng thực của vật."},
+  { highlight:2, question:"Ký hiệu ③ (V) trong công thức FA = d×V biểu thị điều gì?", options:["Vôn — đơn vị điện áp","Thể tích TOÀN BỘ vật","Thể tích phần vật chìm trong chất lỏng","Vận tốc của vật"], answer:2, exp:"③ V = THỂ TÍCH PHẦN VẬT CHÌM TRONG CHẤT LỎNG (không phải thể tích toàn bộ vật). Nếu vật chỉ chìm một nửa thì V = V_vật ÷ 2."},
+  { highlight:3, question:"Ký hiệu ④ (d) trong công thức FA = d×V là gì?", options:["Trọng lượng riêng của VẬT","Khối lượng riêng chất lỏng","Trọng lượng riêng của CHẤT LỎNG (N/m³)","Độ dài"], answer:2, exp:"④ d = TRỌNG LƯỢNG RIÊNG CỦA CHẤT LỎNG (N/m³). Quan trọng: đây là d của chất lỏng, không phải của vật!"},
+  { highlight:4, question:"Khi FA = P (như hình ⑤), vật ở trạng thái nào?", options:["Vật đang nổi lên","Vật đang chìm xuống","Vật lơ lửng — cân bằng trong chất lỏng","Vật nằm yên dưới đáy"], answer:2, exp:"⑤ FA = P → vật LƠ LỬNG (cân bằng) trong chất lỏng. Đây là nguyên lý hoạt động của tàu ngầm: điều chỉnh lượng nước trong két để FA = P."},
+];
+
+let activeLabel='circuit';
+let cqActive=false, pqActive=false, aqActive=false;
+let labelPts=0;
+
+function startLabel(){ ST.mode='label'; labelPts=0; show('label-screen'); setTimeout(()=>{ drawCircuitDiag(); drawPlatingDiag(); drawArchDiag(); initCQ(); },50); }
+
+function switchLabelTab(t){
+  activeLabel=t;
+  document.querySelectorAll('.label-tab').forEach((b,i)=>{ b.classList.toggle('active',(i===0&&t==='circuit')||(i===1&&t==='plating')||(i===2&&t==='archimedes')); });
+  ['circuit','plating','archimedes'].forEach(id=>{ document.getElementById('lp-'+id).classList.toggle('active',id===t); });
+  setTimeout(()=>{ if(t==='circuit')drawCircuitDiag(ST.cqIdx>=CQ.length?-1:ST.cqIdx); else if(t==='plating')drawPlatingDiag(ST.pqIdx>=PQ.length?-1:ST.pqIdx); else drawArchDiag(ST.aqIdx>=AQ.length?-1:ST.aqIdx); },30);
+}
+
+// Draw circuit diagram
+function drawCircuitDiag(hi=-1){
+  const canvas=document.getElementById('circuitDiag');
+  const W=canvas.parentElement.clientWidth-40;
+  canvas.width=W; canvas.height=300;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,W,300);
+  ctx.fillStyle='#111827'; ctx.fillRect(0,0,W,300);
+
+  const cx=W/2,cy=150,rx=W*0.35,ry=90;
+  // wires
+  ctx.strokeStyle='rgba(0,229,255,0.4)'; ctx.lineWidth=2; ctx.setLineDash([]);
+  ctx.strokeRect(cx-rx,cy-ry,rx*2,ry*2);
+
+  const parts=[
+    {x:cx-rx,y:cy,label:'①',name:'Nguồn điện',icon:'battery'},
+    {x:cx,y:cy-ry,label:'②',name:'Ampe kế',icon:'ammeter'},
+    {x:cx+rx,y:cy,label:'③',name:'Vôn kế',icon:'voltmeter'},
+    {x:cx,y:cy+ry,label:'④',name:'Bóng đèn',icon:'bulb'},
+    {x:cx+rx*0.5,y:cy-ry,label:'⑤',name:'Chiều dòng điện',icon:'arrow'},
+    {x:cx-rx*0.5,y:cy+ry,label:'⑥',name:'Công tắc',icon:'switch'},
+  ];
+
+  parts.forEach((p,i)=>{
+    const isHi = i===hi;
+    const color = isHi?'#ff6b2b':'rgba(255,255,255,0.5)';
+    const bgColor = isHi?'rgba(255,107,43,0.2)':'rgba(255,255,255,0.04)';
+    ctx.fillStyle=bgColor; ctx.beginPath(); ctx.arc(p.x,p.y,22,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle=color; ctx.lineWidth=isHi?2.5:1.5; ctx.beginPath(); ctx.arc(p.x,p.y,22,0,Math.PI*2); ctx.stroke();
+    ctx.fillStyle=color; ctx.font=`bold 16px Lexend,sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(p.label,p.x,p.y);
+    ctx.font='10px Lexend,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.4)';
+    ctx.fillText(p.name,p.x,p.y+34);
+  });
+
+  // current direction arrow on top wire
+  const ax=cx+rx*0.5, ay=cy-ry;
+  ctx.strokeStyle='rgba(255,107,43,0.6)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(ax-15,ay); ctx.lineTo(ax+15,ay); ctx.stroke();
+  ctx.fillStyle='rgba(255,107,43,0.8)';
+  ctx.beginPath(); ctx.moveTo(ax+15,ay); ctx.lineTo(ax+8,ay-5); ctx.lineTo(ax+8,ay+5); ctx.closePath(); ctx.fill();
+}
+
+// Draw plating diagram
+function drawPlatingDiag(hi=-1){
+  const canvas=document.getElementById('platingDiag');
+  const W=canvas.parentElement.clientWidth-40;
+  canvas.width=W; canvas.height=300;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,W,300);
+  ctx.fillStyle='#111827'; ctx.fillRect(0,0,W,300);
+
+  // tank with solution
+  const tx=W*0.1,ty=80,tw=W*0.8,th=160;
+  ctx.fillStyle='rgba(0,150,255,0.1)'; ctx.fillRect(tx,ty,tw,th);
+  ctx.strokeStyle='rgba(0,229,255,0.3)'; ctx.lineWidth=2; ctx.strokeRect(tx,ty,tw,th);
+  ctx.fillStyle='rgba(0,229,255,0.4)'; ctx.font='11px Space Mono,monospace'; ctx.textAlign='center';
+  ctx.fillText('Dung dịch muối Niken', W/2, ty+th/2+5);
+
+  // Battery top center
+  const bx=W/2,by=25;
+  ctx.fillStyle='rgba(255,255,255,0.08)'; ctx.beginPath(); ctx.roundRect(bx-28,by-14,56,28,4); ctx.fill();
+  ctx.strokeStyle='rgba(0,229,255,0.5)'; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.fillStyle='rgba(0,229,255,0.8)'; ctx.font='bold 11px Space Mono,monospace'; ctx.textAlign='center';
+  ctx.fillText('NGUỒN ĐIỆN', bx, by+4);
+
+  // wires from battery
+  ctx.strokeStyle='rgba(0,229,255,0.3)'; ctx.lineWidth=2;
+  // (+) wire to right electrode
+  ctx.beginPath(); ctx.moveTo(bx+28,by); ctx.lineTo(W*0.75,by); ctx.lineTo(W*0.75,ty); ctx.stroke();
+  ctx.fillStyle='rgba(0,229,255,0.8)'; ctx.font='bold 12px Space Mono,monospace';
+  ctx.fillText('(+)',W*0.75,by-8);
+  // (-) wire to left electrode
+  ctx.beginPath(); ctx.moveTo(bx-28,by); ctx.lineTo(W*0.25,by); ctx.lineTo(W*0.25,ty); ctx.stroke();
+  ctx.fillStyle='rgba(255,107,43,0.8)';
+  ctx.fillText('(−)',W*0.25,by-8);
+
+  const parts=[
+    {x:W*0.25,y:ty+th/2,label:'①',name:'Chìa khóa thép'},
+    {x:W*0.75,y:ty+th/2,label:'②',name:'Tấm Niken'},
+    {x:W/2,y:ty+th/2+20,label:'③',name:'Dung dịch'},
+    {x:W/2,y:ty+th/2-25,label:'④',name:'Ion Ni²⁺'},
+    {x:W*0.28,y:ty+th*0.75,label:'⑤',name:'Lớp Niken'},
+  ];
+
+  parts.forEach((p,i)=>{
+    const isHi=i===hi;
+    const color=isHi?'#ff6b2b':'rgba(255,255,255,0.55)';
+    ctx.fillStyle=isHi?'rgba(255,107,43,0.2)':'rgba(255,255,255,0.05)';
+    ctx.beginPath(); ctx.arc(p.x,p.y,18,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle=color; ctx.lineWidth=isHi?2.5:1.5; ctx.stroke();
+    ctx.fillStyle=color; ctx.font='bold 14px Lexend,sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(p.label,p.x,p.y);
+    ctx.font='9px Lexend,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.4)';
+    ctx.fillText(p.name,p.x,p.y+28);
+  });
+
+  // ion movement arrow
+  ctx.strokeStyle='rgba(255,229,0,0.6)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(W*0.65,ty+th/2-25); ctx.lineTo(W*0.35,ty+th/2-25); ctx.stroke();
+  ctx.fillStyle='rgba(255,229,0,0.8)';
+  ctx.beginPath(); ctx.moveTo(W*0.35,ty+th/2-25); ctx.lineTo(W*0.42,ty+th/2-30); ctx.lineTo(W*0.42,ty+th/2-20); ctx.closePath(); ctx.fill();
+}
+
+// Draw archimedes diagram
+function drawArchDiag(hi=-1){
+  const canvas=document.getElementById('archDiag');
+  const W=canvas.parentElement.clientWidth-40;
+  canvas.width=W; canvas.height=300;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,W,300);
+  ctx.fillStyle='#111827'; ctx.fillRect(0,0,W,300);
+
+  // tank
+  const tx=W*0.2,ty=40,tw=W*0.6,th=220;
+  ctx.fillStyle='rgba(0,100,200,0.15)'; ctx.fillRect(tx,ty+th*0.3,tw,th*0.7);
+  ctx.strokeStyle='rgba(0,229,255,0.25)'; ctx.lineWidth=2; ctx.strokeRect(tx,ty,tw,th);
+  ctx.fillStyle='rgba(0,229,255,0.3)'; ctx.font='10px Space Mono,monospace'; ctx.textAlign='center';
+  ctx.fillText('CHẤT LỎNG',W/2,ty+th*0.75);
+
+  // water surface line
+  ctx.strokeStyle='rgba(0,229,255,0.5)'; ctx.lineWidth=1; ctx.setLineDash([5,5]);
+  ctx.beginPath(); ctx.moveTo(tx,ty+th*0.3); ctx.lineTo(tx+tw,ty+th*0.3); ctx.stroke(); ctx.setLineDash([]);
+
+  // object (partially submerged)
+  const ox=W/2, oy=ty+th*0.15, os=70;
+  ctx.fillStyle='rgba(255,107,43,0.3)'; ctx.beginPath(); ctx.roundRect(ox-os/2,oy,os,os,6); ctx.fill();
+  ctx.strokeStyle='rgba(255,107,43,0.7)'; ctx.lineWidth=2; ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.font='10px Space Mono,monospace'; ctx.textAlign='center';
+  ctx.fillText('VẬT',ox,oy+os/2+4);
+
+  const parts=[
+    {x:ox+os/2+35,y:oy+os/2-25,label:'①',name:'FA (lên)'},
+    {x:ox+os/2+35,y:oy+os/2+25,label:'②',name:'P (xuống)'},
+    {x:W/2,y:ty+th*0.55,label:'③',name:'V phần chìm'},
+    {x:tx+15,y:ty+th*0.5,label:'④',name:'d chất lỏng'},
+    {x:ox,y:ty+th*0.3+10,label:'⑤',name:'FA = P'},
+  ];
+
+  // Force arrows
+  // FA up
+  drawArrow(ctx, ox+os/2+20, oy+os/2+10, ox+os/2+20, oy+os/2-35, '#00e676', '');
+  // P down
+  drawArrow(ctx, ox+os/2+50, oy+os/2-10, ox+os/2+50, oy+os/2+35, '#ff5252', '');
+
+  parts.forEach((p,i)=>{
+    const isHi=i===hi;
+    const color=isHi?'#ff6b2b':'rgba(255,255,255,0.5)';
+    ctx.fillStyle=isHi?'rgba(255,107,43,0.2)':'rgba(255,255,255,0.05)';
+    ctx.beginPath(); ctx.arc(p.x,p.y,16,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle=color; ctx.lineWidth=isHi?2.5:1.5; ctx.stroke();
+    ctx.fillStyle=color; ctx.font='bold 13px Lexend,sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(p.label,p.x,p.y);
+    ctx.font='9px Lexend,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.35)';
+    ctx.fillText(p.name,p.x,p.y+26);
+  });
+}
+
+// ── Generic label Q handler ──
+function initLabelQ(set, idx, prefix){
+  if(idx>=set.length){ endLabelSet(prefix); return; }
+  const q=set[idx];
+  document.getElementById(prefix+'-num').textContent=idx+1;
+  document.getElementById(prefix+'-total').textContent=set.length;
+  // redraw diagram with highlight
+  if(prefix==='cq') drawCircuitDiag(q.highlight);
+  else if(prefix==='pq') drawPlatingDiag(q.highlight);
+  else drawArchDiag(q.highlight);
+
+  // attempts dots
+  const att=document.getElementById(prefix+'-attempts');
+  att.innerHTML='<span style="font-size:0.65rem;color:var(--muted);margin-right:6px;font-family:Space Mono,monospace;">LƯỢT THỬ:</span>';
+  for(let i=0;i<3;i++){ const d=document.createElement('div'); d.className='att-dot'; att.appendChild(d); }
+
+  // options
+  const opts=document.getElementById(prefix+'-options');
+  opts.innerHTML='';
+  q.options.forEach((o,i)=>{
+    const b=document.createElement('button'); b.className='opt-btn'; b.textContent=o;
+    b.onclick=()=>handleLabelAnswer(b,i===q.answer,q.exp,prefix,set,idx,q.highlight);
+    opts.appendChild(b);
+  });
+
+  document.getElementById(prefix+'-feedback').className='label-feedback';
+  document.getElementById(prefix+'-next').className='btn-next-label';
+  ST[prefix+'Attempts']=0;
+}
+
+function handleLabelAnswer(btn, isCorrect, exp, prefix, set, idx, hi){
+  ST[prefix+'Attempts']++;
+  const dots=document.getElementById(prefix+'-attempts').querySelectorAll('.att-dot');
+  if(ST[prefix+'Attempts']<=3) dots[ST[prefix+'Attempts']-1].classList.add('used');
+
+  const opts=document.getElementById(prefix+'-options').querySelectorAll('.opt-btn');
+  const fb=document.getElementById(prefix+'-feedback');
+
+  if(isCorrect){
+    btn.classList.add('correct');
+    opts.forEach(b=>b.disabled=true);
+    const pts = ST[prefix+'Attempts']===1?20:ST[prefix+'Attempts']===2?10:5;
+    ST[prefix+'Pts']=(ST[prefix+'Pts']||0)+pts;
+    labelPts+=pts;
+    document.getElementById(prefix+'-pts').textContent=labelPts;
+    document.getElementById('label-pts').textContent=labelPts;
+    fb.className='label-feedback correct show';
+    fb.textContent='✅ +'+pts+'pts — '+exp;
+    document.getElementById(prefix+'-next').className='btn-next-label show';
+  } else {
+    btn.classList.add('wrong');
+    if(ST[prefix+'Attempts']>=3){
+      opts.forEach(b=>b.disabled=true);
+      fb.className='label-feedback wrong show';
+      fb.textContent='❌ Hết lượt! '+exp;
+      document.getElementById(prefix+'-next').className='btn-next-label show';
+    } else {
+      btn.disabled=true;
+      fb.className='label-feedback wrong show';
+      fb.textContent='❌ Sai! Còn '+(3-ST[prefix+'Attempts'])+' lượt thử. '+exp.split('—')[0];
+    }
+  }
+}
+
+function initCQ(){ ST.cqIdx=0; ST.cqPts=0; ST.cqAttempts=0; initLabelQ(CQ,0,'cq'); }
+function nextCircuitQ(){ ST.cqIdx++; initLabelQ(CQ,ST.cqIdx,'cq'); }
+function initPQ(){ ST.pqIdx=0; ST.pqPts=0; ST.pqAttempts=0; initLabelQ(PQ,0,'pq'); }
+function nextPlatingQ(){ ST.pqIdx++; initLabelQ(PQ,ST.pqIdx,'pq'); }
+function initAQ(){ ST.aqIdx=0; ST.aqPts=0; ST.aqAttempts=0; initLabelQ(AQ,0,'aq'); }
+function nextArchQ(){ ST.aqIdx++; initLabelQ(AQ,ST.aqIdx,'aq'); }
+
+function endLabelSet(prefix){
+  const total = prefix==='cq'?CQ.length*20:prefix==='pq'?PQ.length*20:AQ.length*20;
+  const earned = ST[prefix+'Pts']||0;
+  ST.xp+=earned; ST.games++; ST.streak++; save();
+  showResult('label','🏷️',prefix==='cq'?'Mạch Điện':prefix==='pq'?'Mạ Điện':'Archimedes',earned,total,`Bạn ghi ${earned}/${total} điểm! Phần thưởng: ${earned} XP. ${earned>=total*0.8?'Xuất sắc! Đã nắm vững sơ đồ này!':'Thử lại để đạt điểm cao hơn!'}`,()=>startLabel());
+}
+
+// ═══════════════════════════════════════
+// PATH — CHOOSE YOUR PATH
+// ═══════════════════════════════════════
+const PATHS=[
+  {
+    loc:'🏙️ CẢNG BIỂN — Đêm bão',
+    text:'Bạn là thuyền trưởng. Con tàu thép 50 tấn đang chở hàng. Bỗng có tin báo: "Cần giảm tải ngay hoặc tàu sẽ chìm!" Bạn nhớ lại bài học về Archimedes. <em>Tại sao tàu thép nặng lại nổi được?</em>',
+    bgColor:['#0a1628','#0d2040'],
+    choices:[
+      {text:'A. Vì thép nhẹ hơn nước — sức nổi tự nhiên của vật liệu',wrong:true,consequence:'💥 Sai lầm! Thép có d = 7800 N/m³, nặng HƠN nước (1000 N/m³) gấp 7,8 lần. Tàu nổi không phải do vật liệu nhẹ.'},
+      {text:'B. Vì tàu rỗng bên trong, thể tích lớn → FA = d×V rất lớn → FA > P',wrong:false,consequence:'⚓ Chính xác! Tàu rỗng → V chiếm nước lớn → FA = d_nước × V_tàu >> P_tàu → nổi. Đây là thiên tài thiết kế Archimedes!'},
+      {text:'C. Vì động cơ tàu tạo lực đẩy lên trên liên tục',wrong:true,consequence:'🚢 Sai! Ngay cả khi tàu tắt máy hoàn toàn, tàu vẫn nổi. Lực đẩy Archimedes tác động 24/7, không cần động cơ.'},
+    ],
+    lesson:'📖 Ghi nhớ: FA = d_chất lỏng × V_phần_chìm. Tàu nổi vì thiết kế rỗng tạo V lớn → FA > P.'
+  },
+  {
+    loc:'⚡ PHÒNG THÍ NGHIỆM — Tiết thực hành',
+    text:'Thầy giao nhiệm vụ: đo cường độ dòng điện qua bóng đèn. Bạn có Ampe kế (A) và Vôn kế (V). <strong>Bạn mắc Ampe kế như thế nào?</strong>',
+    bgColor:['#1a0a28','#2a1040'],
+    choices:[
+      {text:'A. Mắc song song với bóng đèn cho tiện',wrong:true,consequence:'💥 Cháy máy! Ampe kế mắc song song có điện trở rất nhỏ → dòng điện khổng lồ qua ampe kế → hỏng máy ngay. Thầy giáo rất buồn!'},
+      {text:'B. Mắc nối tiếp với bóng đèn trong mạch',wrong:false,consequence:'✅ Hoàn hảo! Ampe kế mắc nối tiếp → toàn bộ dòng điện đi qua → đo chính xác I. Bóng đèn sáng bình thường!'},
+      {text:'C. Không cần mắc vào mạch, chỉ cần đặt gần dây điện',wrong:true,consequence:'❌ Không hoạt động! Ampe kế phải nằm trong mạch điện, có dòng điện đi qua nó mới đo được. Đặt ngoài không có tác dụng gì.'},
+    ],
+    lesson:'📖 QUY TẮC: Ampe kế (A) đo I → mắc NỐI TIẾP. Vôn kế (V) đo U → mắc SONG SONG.'
+  },
+  {
+    loc:'🔧 XƯỞNG MẠ ĐIỆN — Đêm giao hàng',
+    text:'Khách hàng cần 100 chiếc chìa khóa mạ Niken gấp! Bạn chuẩn bị bể mạ. <strong>Bạn nối chìa khóa vào cực nào của nguồn điện?</strong>',
+    bgColor:['#1a1000','#2a1a00'],
+    choices:[
+      {text:'A. Cực dương (+) — ion Niken sẽ bị đẩy sang',wrong:true,consequence:'💸 Hỏng cả lô! Nối cực (+) → chìa khóa là anot → Niken KHÔNG bám vào, ngược lại chìa khóa bị ăn mòn! 100 chiếc hỏng hết.'},
+      {text:'B. Cực âm (−) — ion Niken mang điện (+) bị hút về',wrong:false,consequence:'🏆 Xuất sắc! Chìa khóa là catot (−) → ion Ni²⁺ mang điện (+) bị hút → bám lên bề mặt → lớp Niken sáng bóng. Giao hàng đúng hạn!'},
+      {text:'C. Không cần nối điện, chỉ cần ngâm vào dung dịch',wrong:true,consequence:'❌ Không mạ được! Quá trình mạ điện cần dòng điện để di chuyển ion kim loại. Ngâm không thôi, Niken sẽ không bám vào chìa khóa.'},
+    ],
+    lesson:'📖 MẠ ĐIỆN: Vật cần mạ → cực (−) [catot]. Kim loại mạ → cực (+) [anot]. Ion (+) bị hút về (−) và bám lên.'
+  },
+  {
+    loc:'🌡️ NHÀ BẾP — Sáng sớm',
+    text:'Mẹ cọ xát chảo đồng lên mặt bàn → chảo nóng. Rồi đặt lên bếp ga → nóng thêm. Em hỏi mẹ: "Mẹ ơi, tại sao chảo nóng lên theo 2 cách khác nhau vậy?" <strong>Bạn giải thích thế nào?</strong>',
+    bgColor:['#1a0a00','#2a1500'],
+    choices:[
+      {text:'A. Cả hai đều là truyền nhiệt từ nguồn nóng sang chảo',wrong:true,consequence:'❌ Chưa đúng! Cọ xát KHÔNG phải truyền nhiệt — không có nguồn nóng nào ở đây. Đây là chuyển đổi năng lượng CƠ HỌC thành NHIỆT.'},
+      {text:'B. Cọ xát = thực hiện công (cơ → nhiệt) · Bếp ga = truyền nhiệt (nhiệt → nhiệt)',wrong:false,consequence:'🎉 Xuất sắc! Cọ xát = thực hiện công cơ học → phân tử chuyển động nhanh hơn → nhiệt năng tăng. Bếp ga = ngọn lửa truyền nhiệt vào chảo.'},
+      {text:'C. Cả hai đều là thực hiện công vì chảo được tác động lực',wrong:true,consequence:'❌ Sai! Đặt chảo lên bếp không có lực cơ học nào thực hiện lên chảo. Đây là truyền nhiệt: ngọn lửa → chảo qua dẫn nhiệt.'},
+    ],
+    lesson:'📖 2 CÁCH thay đổi nhiệt năng: (1) Thực hiện công: cọ xát, đập, nén. (2) Truyền nhiệt: dẫn nhiệt, đối lưu, bức xạ.'
+  },
+  {
+    loc:'🏊 HỒ BƠI — Giờ thể dục',
+    text:'Huấn luyện viên ném 3 vật xuống hồ: <em>quả bóng cao su</em> nổi, <em>viên gạch</em> chìm, <em>con cá vàng</em> bơi lơ lửng. HLV hỏi: <strong>"Em giải thích được cả 3 trường hợp không?"</strong>',
+    bgColor:['#001a2a','#002a40'],
+    choices:[
+      {text:'A. Bóng nổi vì nhẹ · Gạch chìm vì nặng · Cá lơ lửng vì biết bơi',wrong:true,consequence:'🤔 Chưa đủ! Nhẹ/nặng không giải thích được hết. Một tàu thép cực nặng vẫn nổi. Cần so sánh FA với P, không phải chỉ xét trọng lượng.'},
+      {text:'B. Bóng: FA > P · Gạch: FA < P · Cá điều chỉnh bóng hơi để FA = P',wrong:false,consequence:'🏆 Hoàn hảo! HLV rất ấn tượng! Đây đúng là cơ sở khoa học. Cá dùng bóng hơi giống tàu ngầm dùng két nước — nguyên lý FA = P để lơ lửng!'},
+      {text:'C. Cả 3 đều chịu FA · Bóng và cá FA đủ mạnh · Gạch FA yếu',wrong:true,consequence:'🤏 Gần đúng nhưng thiếu! "Đủ mạnh" không phải khái niệm vật lý chính xác. Cần so sánh FA với P: FA>P nổi, FA<P chìm, FA=P lơ lửng.'},
+    ],
+    lesson:'📖 ARCHIMEDES 3 TRƯỜNG HỢP: FA > P → nổi | FA < P → chìm | FA = P → lơ lửng (tàu ngầm, cá, khinh khí cầu!)'
+  },
+];
+
+let pathWrongCount=[];
+
+function startPath(){ ST.mode='path'; ST.pathScore=0; ST.pathIdx=0; pathWrongCount=PATHS.map(()=>0); show('path-screen'); renderPath(); }
+
+function renderPath(){
+  const s=PATHS[ST.pathIdx];
+  document.getElementById('path-snum').textContent=ST.pathIdx+1;
+  document.getElementById('path-prog').style.width=((ST.pathIdx+1)/PATHS.length*100)+'%';
+  document.getElementById('path-score').textContent=ST.pathScore;
+  document.getElementById('scene-loc').textContent=s.loc;
+  document.getElementById('scene-text').innerHTML=s.text;
+  document.getElementById('consequence-box').className='consequence-box';
+  document.getElementById('path-next').className='btn-next-path';
+
+  // draw scene bg
+  const canvas=document.getElementById('sceneCanvas');
+  canvas.width=canvas.parentElement.clientWidth;
+  canvas.height=220;
+  const ctx=canvas.getContext('2d');
+  const grd=ctx.createLinearGradient(0,0,0,220);
+  grd.addColorStop(0,s.bgColor[0]);
+  grd.addColorStop(1,s.bgColor[1]);
+  ctx.fillStyle=grd; ctx.fillRect(0,0,canvas.width,220);
+  // scene illustration
+  drawSceneIllustration(ctx, canvas.width, 220, ST.pathIdx);
+
+  const ch=document.getElementById('path-choices');
+  ch.innerHTML='';
+  s.choices.forEach((c,i)=>{
+    const btn=document.createElement('button'); btn.className='path-choice';
+    const letters=['A','B','C'];
+    btn.innerHTML=`<span class="choice-letter">${letters[i]}</span><span>${c.text.replace(/^[A-C]\. /,'')}</span>`;
+    btn.onclick=()=>handlePathChoice(btn,c,i,s);
+    ch.appendChild(btn);
+  });
+}
+
+function drawSceneIllustration(ctx, W, H, idx){
+  ctx.save();
+  if(idx===0){
+    // ship scene
+    ctx.fillStyle='rgba(0,100,200,0.3)'; ctx.fillRect(0,H*0.6,W,H*0.4);
+    ctx.fillStyle='rgba(100,150,200,0.2)'; ctx.beginPath(); ctx.ellipse(W/2,H*0.6,W*0.5,30,0,0,Math.PI*2); ctx.fill();
+    // simple ship
+    ctx.fillStyle='rgba(150,150,160,0.6)';
+    ctx.beginPath(); ctx.moveTo(W*0.25,H*0.6); ctx.lineTo(W*0.3,H*0.45); ctx.lineTo(W*0.7,H*0.45); ctx.lineTo(W*0.75,H*0.6); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='rgba(200,200,210,0.5)'; ctx.fillRect(W*0.4,H*0.25,W*0.2,H*0.2);
+    // waves
+    ctx.strokeStyle='rgba(0,229,255,0.3)'; ctx.lineWidth=2;
+    [0.2,0.5,0.8].forEach(x=>{ ctx.beginPath(); ctx.arc(W*x,H*0.65,15,Math.PI,0); ctx.stroke(); });
+  } else if(idx===1){
+    // lab scene
+    ctx.fillStyle='rgba(0,50,100,0.2)'; ctx.fillRect(W*0.1,H*0.2,W*0.8,H*0.6);
+    // circuit suggestion
+    ctx.strokeStyle='rgba(0,229,255,0.3)'; ctx.lineWidth=2;
+    ctx.strokeRect(W*0.25,H*0.25,W*0.5,H*0.5);
+    ctx.fillStyle='rgba(255,229,0,0.5)'; ctx.beginPath(); ctx.arc(W*0.75,H*0.5,20,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='rgba(0,230,118,0.5)'; ctx.beginPath(); ctx.arc(W*0.5,H*0.25,15,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.font='11px Space Mono,monospace'; ctx.textAlign='center';
+    ctx.fillText('A', W*0.5, H*0.29);
+    ctx.fillText('💡', W*0.75, H*0.53);
+  } else if(idx===2){
+    // plating scene
+    ctx.fillStyle='rgba(0,100,50,0.2)'; ctx.fillRect(W*0.2,H*0.3,W*0.6,H*0.5);
+    ctx.strokeStyle='rgba(0,229,255,0.3)'; ctx.lineWidth=2; ctx.strokeRect(W*0.2,H*0.3,W*0.6,H*0.5);
+    ctx.fillStyle='rgba(200,200,200,0.4)'; ctx.fillRect(W*0.3,H*0.35,W*0.12,H*0.4);
+    ctx.fillStyle='rgba(150,200,150,0.4)'; ctx.fillRect(W*0.58,H*0.35,W*0.12,H*0.4);
+    ctx.fillStyle='rgba(0,229,255,0.3)'; ctx.font='10px Space Mono,monospace'; ctx.textAlign='center';
+    ctx.fillText('Ni²⁺',W/2,H*0.55);
+  } else if(idx===3){
+    // kitchen
+    ctx.fillStyle='rgba(100,50,0,0.2)'; ctx.fillRect(0,H*0.4,W,H*0.6);
+    // pan
+    ctx.fillStyle='rgba(180,120,60,0.5)'; ctx.beginPath(); ctx.ellipse(W/2,H*0.55,60,25,0,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='rgba(220,150,80,0.6)'; ctx.lineWidth=3; ctx.stroke();
+    // flame
+    ctx.fillStyle='rgba(255,100,0,0.5)'; ctx.beginPath(); ctx.arc(W/2,H*0.72,18,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='rgba(255,200,0,0.5)'; ctx.beginPath(); ctx.arc(W/2,H*0.69,10,0,Math.PI*2); ctx.fill();
+  } else {
+    // pool
+    ctx.fillStyle='rgba(0,100,200,0.35)'; ctx.fillRect(W*0.1,H*0.3,W*0.8,H*0.55);
+    ctx.strokeStyle='rgba(0,229,255,0.3)'; ctx.lineWidth=2; ctx.strokeRect(W*0.1,H*0.3,W*0.8,H*0.55);
+    // ball
+    ctx.fillStyle='rgba(200,50,50,0.6)'; ctx.beginPath(); ctx.arc(W*0.25,H*0.35,18,0,Math.PI*2); ctx.fill();
+    // brick
+    ctx.fillStyle='rgba(150,100,80,0.6)'; ctx.fillRect(W*0.46,H*0.7,24,20);
+    // fish
+    ctx.fillStyle='rgba(255,200,50,0.6)'; ctx.beginPath(); ctx.ellipse(W*0.72,H*0.55,22,12,0,0,Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+function handlePathChoice(btn, choice, idx, scene){
+  const allBtns=document.querySelectorAll('.path-choice');
+  allBtns.forEach(b=>b.disabled=true);
+
+  const box=document.getElementById('consequence-box');
+  if(choice.wrong){
+    btn.classList.add('wrong');
+    pathWrongCount[ST.pathIdx]++;
+    allBtns.forEach(b=>b.disabled=false);
+    btn.disabled=true;
+    box.className='consequence-box wrong show';
+    box.innerHTML=`<span class="emoji">💥</span>${choice.consequence}<br><br><em style="color:rgba(255,200,200,0.6);font-size:0.8rem;">Thử lại — bạn còn lựa chọn khác!</em>`;
+    // re-enable other buttons after delay
+    setTimeout(()=>{ allBtns.forEach(b=>{ if(!b.classList.contains('wrong')) b.disabled=false; }); },300);
+  } else {
+    btn.classList.add('correct');
+    allBtns.forEach(b=>b.disabled=true);
+    const pts = pathWrongCount[ST.pathIdx]===0?30:pathWrongCount[ST.pathIdx]===1?20:10;
+    ST.pathScore+=pts;
+    document.getElementById('path-score').textContent=ST.pathScore;
+    box.className='consequence-box correct show';
+    box.innerHTML=`<span class="emoji">🎉</span>${choice.consequence}<br><br><strong style="color:rgba(200,255,200,0.8);font-size:0.82rem;">+${pts} điểm · ${scene.lesson}</strong>`;
+    document.getElementById('path-next').className='btn-next-path show';
+  }
+}
+
+function nextPath(){
+  ST.pathIdx++;
+  if(ST.pathIdx>=PATHS.length){
+    ST.xp+=ST.pathScore; ST.games++; ST.streak++; save();
+    showResult('path','🗺️','Choose Your Path',ST.pathScore,PATHS.length*30,`Bạn đã hoàn thành hành trình! ${ST.pathScore}/${PATHS.length*30} điểm. ${pathWrongCount.filter(x=>x===0).length} tình huống giải ngay lần đầu!`,startPath);
+  } else renderPath();
+}
+
+// ═══════════════════════════════════════
+// RESULT
+// ═══════════════════════════════════════
+function showResult(mode, emoji, label, score, max, msg, replayFn){
+  document.getElementById('r-emoji').textContent=emoji;
+  const badge=document.getElementById('r-badge');
+  badge.textContent=label; badge.className='result-mode-badge '+mode;
+  const pct=score/max;
+  document.getElementById('r-title').textContent=pct>=0.8?'XUẤT SẮC!':pct>=0.5?'TỐT LẮM!':'CỐ LÊN!';
+  document.getElementById('r-score').textContent=score+' / '+max;
+  document.getElementById('r-msg').textContent=msg;
+  document.getElementById('r-replay').onclick=replayFn;
+  show('result');
+}
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+updateBanner();
+window.addEventListener('resize',()=>{
+  const active=document.querySelector('.screen.active');
+  if(!active) return;
+  if(active.id==='sim-screen'){ resizeCanvas('archCanvas'); resizeCanvas('circuitCanvas'); updateArch(); }
+  if(active.id==='label-screen'){ if(activeLabel==='circuit')drawCircuitDiag(ST.cqIdx<CQ.length?CQ[ST.cqIdx].highlight:-1); else if(activeLabel==='plating')drawPlatingDiag(); else drawArchDiag(); }
+  if(active.id==='path-screen'){ const c=document.getElementById('sceneCanvas'); if(c){ c.width=c.parentElement.clientWidth; drawSceneIllustration(c.getContext('2d'),c.width,220,ST.pathIdx); } }
+});
+</script>
+</body>
+</html>
