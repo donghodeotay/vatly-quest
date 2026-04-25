@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vật Lý Quest</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #060b18;
+    --surface: #0d1a2e;
+    --surface2: #112240;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --accent3: #7fff6b;
+    --accent4: #c77dff;
+    --text: #e8f4fd;
+    --muted: #6b8caa;
+    --correct: #00e676;
+    --wrong: #ff1744;
+    --gold: #ffd700;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Stars background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 10% 20%, rgba(0,212,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 30% 60%, rgba(255,107,53,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 70% 15%, rgba(127,255,107,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 90% 80%, rgba(199,125,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 50% 40%, rgba(0,212,255,0.2) 0%, transparent 100%),
+      radial-gradient(1px 1px at 20% 85%, rgba(255,215,0,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 80% 50%, rgba(0,212,255,0.2) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .screen { display: none; position: relative; z-index: 1; min-height: 100vh; }
+  .screen.active { display: flex; flex-direction: column; align-items: center; }
+
+  /* ===== HOME SCREEN ===== */
+  #home {
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+  }
+
+  .logo {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(2rem, 8vw, 4rem);
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--accent), var(--accent4), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 6px;
+    animation: pulse 3s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { filter: drop-shadow(0 0 10px rgba(0,212,255,0.5)); }
+    50% { filter: drop-shadow(0 0 25px rgba(0,212,255,0.9)); }
+  }
+
+  .tagline {
+    color: var(--muted);
+    font-size: 1rem;
+    margin-bottom: 48px;
+    letter-spacing: 0.1em;
+  }
+
+  .score-banner {
+    background: var(--surface);
+    border: 1px solid rgba(0,212,255,0.2);
+    border-radius: 16px;
+    padding: 16px 32px;
+    margin-bottom: 40px;
+    display: flex;
+    gap: 32px;
+  }
+  .score-item { text-align: center; }
+  .score-item .val {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.6rem;
+    color: var(--gold);
+    font-weight: 700;
+  }
+  .score-item .lbl { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+
+  .modes-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    width: 100%;
+    max-width: 500px;
+    margin-bottom: 32px;
+  }
+
+  .mode-card {
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 24px 16px;
+    cursor: pointer;
+    transition: all 0.25s;
+    position: relative;
+    overflow: hidden;
+  }
+  .mode-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.25s;
+    border-radius: 20px;
+  }
+  .mode-card:hover { transform: translateY(-4px); border-color: rgba(255,255,255,0.2); }
+  .mode-card:hover::before { opacity: 1; }
+
+  .mode-card.quiz::before { background: radial-gradient(circle at top left, rgba(0,212,255,0.15), transparent 60%); }
+  .mode-card.match::before { background: radial-gradient(circle at top left, rgba(255,107,53,0.15), transparent 60%); }
+  .mode-card.flash::before { background: radial-gradient(circle at top left, rgba(127,255,107,0.15), transparent 60%); }
+  .mode-card.story::before { background: radial-gradient(circle at top left, rgba(199,125,255,0.15), transparent 60%); }
+
+  .mode-icon { font-size: 2.5rem; margin-bottom: 10px; }
+  .mode-name { font-size: 1rem; font-weight: 800; margin-bottom: 4px; }
+  .mode-desc { font-size: 0.72rem; color: var(--muted); line-height: 1.4; }
+
+  .mode-card.quiz .mode-name { color: var(--accent); }
+  .mode-card.match .mode-name { color: var(--accent2); }
+  .mode-card.flash .mode-name { color: var(--accent3); }
+  .mode-card.story .mode-name { color: var(--accent4); }
+
+  /* ===== GAME HEADER ===== */
+  .game-header {
+    width: 100%;
+    max-width: 640px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+  }
+
+  .btn-back {
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+  }
+  .btn-back:hover { background: var(--surface2); }
+
+  .game-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 1rem;
+    flex: 1;
+    text-align: center;
+  }
+
+  .score-pill {
+    background: var(--surface);
+    border: 1px solid rgba(255,215,0,0.3);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.85rem;
+    color: var(--gold);
+  }
+
+  /* ===== PROGRESS BAR ===== */
+  .progress-wrap { width: 100%; max-width: 640px; padding: 0 20px 16px; }
+  .progress-track { background: var(--surface); border-radius: 10px; height: 8px; overflow: hidden; }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent4));
+    border-radius: 10px;
+    transition: width 0.5s ease;
+    box-shadow: 0 0 10px rgba(0,212,255,0.5);
+  }
+
+  /* ===== GAME CONTAINER ===== */
+  .game-container {
+    width: 100%;
+    max-width: 640px;
+    padding: 0 20px 40px;
+    flex: 1;
+  }
+
+  /* ===== QUIZ MODE ===== */
+  .quiz-question {
+    background: var(--surface);
+    border: 1px solid rgba(0,212,255,0.2);
+    border-radius: 20px;
+    padding: 28px 24px;
+    margin-bottom: 20px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.6;
+    text-align: center;
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .quiz-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .quiz-opt {
+    background: var(--surface);
+    border: 2px solid rgba(255,255,255,0.1);
+    border-radius: 14px;
+    padding: 16px 12px;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text);
+    transition: all 0.2s;
+    line-height: 1.4;
+    min-height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .quiz-opt:hover:not(:disabled) { border-color: var(--accent); background: var(--surface2); transform: scale(1.02); }
+  .quiz-opt.correct { border-color: var(--correct); background: rgba(0,230,118,0.15); color: var(--correct); }
+  .quiz-opt.wrong { border-color: var(--wrong); background: rgba(255,23,68,0.15); color: var(--wrong); }
+  .quiz-opt:disabled { cursor: default; }
+
+  .feedback-box {
+    margin-top: 16px;
+    padding: 14px 18px;
+    border-radius: 14px;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    display: none;
+    animation: fadeIn 0.3s;
+  }
+  .feedback-box.show { display: block; }
+  .feedback-box.correct { background: rgba(0,230,118,0.1); border: 1px solid rgba(0,230,118,0.3); color: var(--correct); }
+  .feedback-box.wrong { background: rgba(255,23,68,0.1); border: 1px solid rgba(255,23,68,0.3); color: #ff6b6b; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .btn-next {
+    width: 100%;
+    margin-top: 20px;
+    padding: 16px;
+    border-radius: 14px;
+    border: none;
+    background: linear-gradient(135deg, var(--accent), var(--accent4));
+    color: #000;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: none;
+  }
+  .btn-next.show { display: block; }
+  .btn-next:hover { transform: scale(1.02); box-shadow: 0 0 20px rgba(0,212,255,0.4); }
+
+  /* ===== FLASHCARD MODE ===== */
+  .flash-wrap { perspective: 1000px; width: 100%; margin-bottom: 24px; }
+  .flash-card {
+    width: 100%;
+    height: 220px;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.6s ease;
+    cursor: pointer;
+  }
+  .flash-card.flipped { transform: rotateY(180deg); }
+
+  .flash-face {
+    position: absolute;
+    inset: 0;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    text-align: center;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+  .flash-front {
+    background: linear-gradient(135deg, var(--surface), var(--surface2));
+    border: 1px solid rgba(127,255,107,0.3);
+  }
+  .flash-back {
+    background: linear-gradient(135deg, #0a2010, #0f300f);
+    border: 1px solid rgba(127,255,107,0.5);
+    transform: rotateY(180deg);
+  }
+  .flash-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent3); margin-bottom: 10px; }
+  .flash-term { font-size: 1.2rem; font-weight: 800; line-height: 1.4; }
+  .flash-def { font-size: 0.9rem; line-height: 1.6; color: #c8f0c0; }
+  .flash-hint { font-size: 0.72rem; color: var(--muted); margin-top: 8px; }
+
+  .flash-nav { display: flex; gap: 12px; width: 100%; }
+  .flash-btn {
+    flex: 1;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: var(--surface);
+    color: var(--text);
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .flash-btn:hover { background: var(--surface2); }
+  .flash-btn.know { border-color: rgba(0,230,118,0.4); color: var(--correct); }
+  .flash-btn.know:hover { background: rgba(0,230,118,0.1); }
+  .flash-btn.review { border-color: rgba(255,107,53,0.4); color: var(--accent2); }
+  .flash-btn.review:hover { background: rgba(255,107,53,0.1); }
+
+  .flash-counter { text-align: center; color: var(--muted); font-size: 0.8rem; margin-top: 12px; }
+
+  /* ===== MATCH MODE ===== */
+  .match-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .match-col { display: flex; flex-direction: column; gap: 10px; }
+  .match-col-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; text-align: center; }
+
+  .match-item {
+    background: var(--surface);
+    border: 2px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 12px 10px;
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.4;
+    min-height: 58px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  .match-item:hover:not(.matched):not(.wrong-flash) { border-color: var(--accent2); background: var(--surface2); }
+  .match-item.selected { border-color: var(--accent2); background: rgba(255,107,53,0.15); color: var(--accent2); }
+  .match-item.matched { border-color: var(--correct); background: rgba(0,230,118,0.12); color: var(--correct); cursor: default; opacity: 0.7; }
+  .match-item.wrong-flash { border-color: var(--wrong); background: rgba(255,23,68,0.15); animation: wrongShake 0.4s ease; }
+
+  @keyframes wrongShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+
+  .match-instructions { text-align: center; color: var(--muted); font-size: 0.8rem; margin-bottom: 16px; }
+
+  /* ===== STORY MODE ===== */
+  .story-scene {
+    background: var(--surface);
+    border: 1px solid rgba(199,125,255,0.2);
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+  .story-scene-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent4); margin-bottom: 8px; }
+  .story-text { font-size: 0.95rem; line-height: 1.75; }
+  .story-text strong { color: var(--accent4); }
+  .story-text em { color: var(--accent); font-style: normal; }
+
+  .story-choices { display: flex; flex-direction: column; gap: 10px; }
+  .story-choice {
+    background: var(--surface);
+    border: 2px solid rgba(199,125,255,0.2);
+    border-radius: 14px;
+    padding: 14px 18px;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text);
+    text-align: left;
+    transition: all 0.2s;
+    line-height: 1.4;
+  }
+  .story-choice:hover:not(:disabled) { border-color: var(--accent4); background: rgba(199,125,255,0.1); }
+  .story-choice.correct { border-color: var(--correct); background: rgba(0,230,118,0.1); color: var(--correct); }
+  .story-choice.wrong { border-color: var(--wrong); background: rgba(255,23,68,0.1); color: #ff6b6b; }
+
+  .story-outcome {
+    padding: 14px 18px;
+    border-radius: 14px;
+    margin-top: 12px;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    display: none;
+    animation: fadeIn 0.3s;
+  }
+  .story-outcome.show { display: block; }
+  .story-outcome.correct { background: rgba(0,230,118,0.1); border: 1px solid rgba(0,230,118,0.3); color: var(--correct); }
+  .story-outcome.wrong { background: rgba(255,23,68,0.1); border: 1px solid rgba(255,23,68,0.3); color: #ff6b6b; }
+
+  /* ===== RESULT SCREEN ===== */
+  #result {
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+  }
+  .result-emoji { font-size: 5rem; margin-bottom: 16px; animation: bounce 0.8s ease; }
+  @keyframes bounce { 0% { transform: scale(0); } 60% { transform: scale(1.2); } 100% { transform: scale(1); } }
+  .result-title { font-family: 'Orbitron', monospace; font-size: 1.6rem; font-weight: 900; margin-bottom: 8px; }
+  .result-score { font-size: 3rem; font-weight: 900; color: var(--gold); margin-bottom: 24px; font-family: 'Orbitron', monospace; }
+  .result-message { color: var(--muted); margin-bottom: 32px; max-width: 320px; line-height: 1.6; }
+  .result-btns { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 320px; }
+  .result-btn {
+    padding: 16px;
+    border-radius: 14px;
+    border: none;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .result-btn.primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent4));
+    color: #000;
+  }
+  .result-btn.secondary {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .result-btn:hover { transform: scale(1.02); }
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<div id="home" class="screen active">
+  <div class="logo">⚡ VẬT LÝ QUEST</div>
+  <div class="tagline">PHYSICS LEARNING ADVENTURE</div>
+
+  <div class="score-banner">
+    <div class="score-item">
+      <div class="val" id="home-total">0</div>
+      <div class="lbl">Tổng XP</div>
+    </div>
+    <div class="score-item">
+      <div class="val" id="home-streak">0</div>
+      <div class="lbl">Streak 🔥</div>
+    </div>
+    <div class="score-item">
+      <div class="val" id="home-games">0</div>
+      <div class="lbl">Lần chơi</div>
+    </div>
+  </div>
+
+  <div class="modes-grid">
+    <div class="mode-card quiz" onclick="startMode('quiz')">
+      <div class="mode-icon">🎯</div>
+      <div class="mode-name">TRẮC NGHIỆM</div>
+      <div class="mode-desc">Chọn đáp án đúng · 10 câu · Tính điểm</div>
+    </div>
+    <div class="mode-card match" onclick="startMode('match')">
+      <div class="mode-icon">🔗</div>
+      <div class="mode-name">GHÉP ĐÔI</div>
+      <div class="mode-desc">Nối khái niệm với định nghĩa</div>
+    </div>
+    <div class="mode-card flash" onclick="startMode('flash')">
+      <div class="mode-icon">🃏</div>
+      <div class="mode-name">FLASHCARD</div>
+      <div class="mode-desc">Lật thẻ · Ôn tập từng khái niệm</div>
+    </div>
+    <div class="mode-card story" onclick="startMode('story')">
+      <div class="mode-icon">🌊</div>
+      <div class="mode-name">CÂU CHUYỆN</div>
+      <div class="mode-desc">Học qua tình huống thực tế</div>
+    </div>
+  </div>
+</div>
+
+<!-- QUIZ SCREEN -->
+<div id="quiz-screen" class="screen">
+  <div class="game-header">
+    <button class="btn-back" onclick="goHome()">← Home</button>
+    <div class="game-title" style="color:var(--accent)">🎯 TRẮC NGHIỆM</div>
+    <div class="score-pill">⭐ <span id="quiz-score">0</span></div>
+  </div>
+  <div class="progress-wrap">
+    <div style="font-size:0.75rem;color:var(--muted);margin-bottom:6px">Câu <span id="quiz-qnum">1</span> / 10</div>
+    <div class="progress-track"><div class="progress-fill" id="quiz-progress" style="width:10%"></div></div>
+  </div>
+  <div class="game-container">
+    <div class="quiz-question" id="quiz-question">Loading...</div>
+    <div class="quiz-options" id="quiz-options"></div>
+    <div class="feedback-box" id="quiz-feedback"></div>
+    <button class="btn-next" id="quiz-next" onclick="nextQuiz()">TIẾP THEO →</button>
+  </div>
+</div>
+
+<!-- FLASHCARD SCREEN -->
+<div id="flash-screen" class="screen">
+  <div class="game-header">
+    <button class="btn-back" onclick="goHome()">← Home</button>
+    <div class="game-title" style="color:var(--accent3)">🃏 FLASHCARD</div>
+    <div class="score-pill">✅ <span id="flash-known">0</span></div>
+  </div>
+  <div class="game-container">
+    <div class="flash-wrap">
+      <div class="flash-card" id="flash-card" onclick="flipCard()">
+        <div class="flash-face flash-front">
+          <div>
+            <div class="flash-label">THUẬT NGỮ — nhấn để lật</div>
+            <div class="flash-term" id="flash-term"></div>
+          </div>
+        </div>
+        <div class="flash-face flash-back">
+          <div>
+            <div class="flash-label">ĐỊNH NGHĨA</div>
+            <div class="flash-def" id="flash-def"></div>
+            <div class="flash-hint" id="flash-example"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="flash-nav">
+      <button class="flash-btn review" onclick="flashAnswer(false)">🔄 Ôn lại</button>
+      <button class="flash-btn know" onclick="flashAnswer(true)">✅ Đã nhớ!</button>
+    </div>
+    <div class="flash-counter" id="flash-counter">Thẻ 1 / 12</div>
+  </div>
+</div>
+
+<!-- MATCH SCREEN -->
+<div id="match-screen" class="screen">
+  <div class="game-header">
+    <button class="btn-back" onclick="goHome()">← Home</button>
+    <div class="game-title" style="color:var(--accent2)">🔗 GHÉP ĐÔI</div>
+    <div class="score-pill">🔗 <span id="match-score">0</span>/6</div>
+  </div>
+  <div class="game-container">
+    <div class="match-instructions">Chọn một khái niệm bên trái, rồi chọn định nghĩa tương ứng bên phải</div>
+    <div class="match-grid">
+      <div>
+        <div class="match-col-label">Khái niệm</div>
+        <div class="match-col" id="match-left"></div>
+      </div>
+      <div>
+        <div class="match-col-label">Định nghĩa</div>
+        <div class="match-col" id="match-right"></div>
+      </div>
+    </div>
+    <div class="feedback-box" id="match-feedback" style="margin-top:16px"></div>
+  </div>
+</div>
+
+<!-- STORY SCREEN -->
+<div id="story-screen" class="screen">
+  <div class="game-header">
+    <button class="btn-back" onclick="goHome()">← Home</button>
+    <div class="game-title" style="color:var(--accent4)">🌊 CÂU CHUYỆN</div>
+    <div class="score-pill">⭐ <span id="story-score">0</span></div>
+  </div>
+  <div class="progress-wrap">
+    <div style="font-size:0.75rem;color:var(--muted);margin-bottom:6px">Tình huống <span id="story-snum">1</span> / 5</div>
+    <div class="progress-track"><div class="progress-fill" id="story-progress" style="width:20%;background:linear-gradient(90deg,var(--accent4),var(--accent2))"></div></div>
+  </div>
+  <div class="game-container">
+    <div class="story-scene">
+      <div class="story-scene-title" id="story-scene-title">Cảnh 1</div>
+      <div class="story-text" id="story-text"></div>
+    </div>
+    <div class="story-choices" id="story-choices"></div>
+    <div class="story-outcome" id="story-outcome"></div>
+    <button class="btn-next" id="story-next" onclick="nextStory()" style="background:linear-gradient(135deg,var(--accent4),var(--accent2));color:#000">TIẾP THEO →</button>
+  </div>
+</div>
+
+<!-- RESULT SCREEN -->
+<div id="result" class="screen">
+  <div class="result-emoji" id="result-emoji">🏆</div>
+  <div class="result-title" id="result-title">HOÀN THÀNH!</div>
+  <div class="result-score" id="result-score">10 / 10</div>
+  <div class="result-message" id="result-message">Xuất sắc! Bạn đã nắm vững kiến thức Vật Lý!</div>
+  <div class="result-btns">
+    <button class="result-btn primary" id="result-replay" onclick="">CHƠI LẠI</button>
+    <button class="result-btn secondary" onclick="goHome()">← VỀ TRANG CHỦ</button>
+  </div>
+</div>
+
+<script>
+// ===========================
+// DATA
+// ===========================
+const quizQuestions = [
+  {
+    q: "Lực đẩy Archimedes (FA) được tính bằng công thức nào?",
+    opts: ["FA = d × V", "FA = m × g", "FA = P / V", "FA = d / V"],
+    ans: 0,
+    explain: "✓ FA = d × V, trong đó d là trọng lượng riêng của chất lỏng (N/m³) và V là thể tích phần chất lỏng bị vật chiếm chỗ."
+  },
+  {
+    q: "Vật nổi lên khi nào?",
+    opts: ["FA < P (lực đẩy nhỏ hơn trọng lượng)", "FA = P (lực đẩy bằng trọng lượng)", "FA > P (lực đẩy lớn hơn trọng lượng)", "FA = 0"],
+    ans: 2,
+    explain: "✓ Vật nổi lên khi lực đẩy Archimedes lớn hơn trọng lượng của vật (FA > P)."
+  },
+  {
+    q: "Cường độ dòng điện được đo bằng dụng cụ nào?",
+    opts: ["Vôn kế", "Nhiệt kế", "Ampe kế", "Lực kế"],
+    ans: 2,
+    explain: "✓ Ampe kế đo cường độ dòng điện (I), đơn vị là Ampe (A). 1A = 1000mA."
+  },
+  {
+    q: "Hiệu điện thế được ký hiệu và đo bằng dụng cụ nào?",
+    opts: ["I — Ampe kế", "U — Vôn kế", "P — Oát kế", "R — Ôm kế"],
+    ans: 1,
+    explain: "✓ Hiệu điện thế ký hiệu là U, đơn vị Vôn (V), đo bằng Vôn kế."
+  },
+  {
+    q: "Dòng điện là gì?",
+    opts: [
+      "Dòng chuyển dời có hướng của các phân tử nước",
+      "Dòng chuyển dời có hướng của các hạt mang điện",
+      "Sự chuyển động ngẫu nhiên của điện tử",
+      "Lực hút giữa hai điện tích"
+    ],
+    ans: 1,
+    explain: "✓ Dòng điện là dòng chuyển dời có hướng của các hạt mang điện."
+  },
+  {
+    q: "Vật nào SAU ĐÂY là vật dẫn điện?",
+    opts: ["Nhựa", "Cao su", "Kim loại", "Sứ"],
+    ans: 2,
+    explain: "✓ Vật dẫn điện thường làm bằng kim loại (đồng, sắt...). Nhựa, cao su, sứ là vật cách điện."
+  },
+  {
+    q: "Tác dụng nào của dòng điện giúp mạ đồng, mạ vàng?",
+    opts: ["Tác dụng nhiệt", "Tác dụng phát sáng", "Tác dụng sinh lý", "Tác dụng hóa học"],
+    ans: 3,
+    explain: "✓ Tác dụng hóa học của dòng điện được ứng dụng trong mạ điện (mạ đồng, mạ vàng, mạ Niken)."
+  },
+  {
+    q: "Nhiệt năng của một vật là gì?",
+    opts: [
+      "Nhiệt độ của vật đó",
+      "Năng lượng vật có do vị trí",
+      "Tổng động năng của các phân tử cấu tạo nên vật",
+      "Năng lượng ánh sáng vật hấp thụ"
+    ],
+    ans: 2,
+    explain: "✓ Nhiệt năng là tổng động năng của các phân tử cấu tạo nên vật. Vật nóng → phân tử chuyển động nhanh → nhiệt năng lớn."
+  },
+  {
+    q: "Có mấy cách làm thay đổi nhiệt năng?",
+    opts: ["1 cách: truyền nhiệt", "2 cách: thực hiện công và truyền nhiệt", "3 cách", "4 cách"],
+    ans: 1,
+    explain: "✓ Có 2 cách: (1) Thực hiện công — ví dụ cọ xát miếng đồng; (2) Truyền nhiệt — ví dụ hơ nóng trên ngọn lửa."
+  },
+  {
+    q: "1 kV bằng bao nhiêu V?",
+    opts: ["10 V", "100 V", "1000 V", "10000 V"],
+    ans: 2,
+    explain: "✓ 1 kV = 1000 V. Tương tự: 1 kA = 1000 A và 1 A = 1000 mA."
+  }
+];
+
+const flashCards = [
+  { term: "Lực đẩy Archimedes", def: "Lực đẩy hướng thẳng đứng từ dưới lên tác dụng vào vật đặt trong chất lỏng", ex: "Ví dụ: bong bóng xà phòng nổi lên trong nước" },
+  { term: "Công thức FA", def: "FA = d × V (d: trọng lượng riêng chất lỏng N/m³; V: thể tích phần chìm)", ex: "Đơn vị: N (Newton)" },
+  { term: "Điều kiện vật nổi", def: "FA > P (lực đẩy Archimedes lớn hơn trọng lượng vật)", ex: "Thuyền nổi vì d_thuyền < d_nước" },
+  { term: "Dòng điện", def: "Dòng chuyển dời có hướng của các hạt mang điện", ex: "Trong kim loại: dòng electron chuyển động" },
+  { term: "Nguồn điện", def: "Vật có khả năng cung cấp năng lượng điện cho các dụng cụ điện", ex: "Pin, acquy, ổ điện..." },
+  { term: "Cường độ dòng điện (I)", def: "Đại lượng đặc trưng cho tác dụng mạnh hay yếu của dòng điện, đo bằng Ampe kế", ex: "1 A = 1000 mA" },
+  { term: "Hiệu điện thế (U)", def: "Khả năng sinh ra dòng điện của nguồn điện, ký hiệu U, đơn vị Vôn (V)", ex: "Đo bằng Vôn kế. 1 kV = 1000 V" },
+  { term: "Vật dẫn điện", def: "Vật cho dòng điện chạy qua, thường làm bằng kim loại", ex: "Đồng, sắt, nhôm..." },
+  { term: "Vật cách điện", def: "Vật không cho dòng điện chạy qua", ex: "Nhựa, cao su, sứ, thủy tinh..." },
+  { term: "Tác dụng nhiệt", def: "Dòng điện làm nóng vật dẫn khi chạy qua", ex: "Bàn là điện, bóng đèn sợi đốt" },
+  { term: "Nhiệt năng", def: "Tổng động năng của các phân tử cấu tạo nên vật", ex: "Vật càng nóng → phân tử chuyển động càng nhanh" },
+  { term: "Truyền nhiệt", def: "Một trong hai cách thay đổi nhiệt năng: truyền nhiệt từ vật nóng sang vật lạnh", ex: "Hơ nóng miếng sắt trên ngọn lửa đèn cồn" }
+];
+
+const matchPairs = [
+  { left: "FA = d × V", right: "Công thức lực đẩy Archimedes" },
+  { left: "Ampe kế (A)", right: "Đo cường độ dòng điện" },
+  { left: "Vôn kế (V)", right: "Đo hiệu điện thế" },
+  { left: "Vật dẫn điện", right: "Kim loại như đồng, sắt" },
+  { left: "Nhiệt năng", right: "Tổng động năng của phân tử" },
+  { left: "FA > P", right: "Điều kiện để vật nổi lên" }
+];
+
+const storyScenes = [
+  {
+    title: "🚢 Cảng biển — Tàu hay chìm?",
+    text: `Bạn là kỹ sư đóng tàu. Một chiếc tàu thép khổng lồ đang được hạ xuống biển. Đồng nghiệp hỏi: "Tại sao tàu thép nặng như vậy lại nổi được, trong khi một viên bi sắt nhỏ lại chìm?"`,
+    choices: [
+      { text: "Vì tàu được làm bằng loại thép đặc biệt nhẹ hơn nước", correct: false },
+      { text: "Vì thể tích tàu lớn → lực đẩy FA lớn hơn trọng lượng P", correct: true },
+      { text: "Vì tàu có động cơ giúp nó nổi", correct: false }
+    ],
+    correct: "🎉 Đúng! Tàu có hình dạng rỗng, thể tích lớn nên lực đẩy FA = d×V rất lớn, vượt qua trọng lượng. Viên bi đặc nên V nhỏ, FA < P → chìm.",
+    wrong: "❌ Chưa đúng. Tàu nổi vì có thể tích lớn → FA = d×V lớn → FA > P. Không liên quan đến loại thép hay động cơ."
+  },
+  {
+    title: "⚡ Phòng thí nghiệm — Đo điện",
+    text: `Thầy giáo đưa cho bạn hai dụng cụ: một cái ký hiệu <strong>A</strong> và một cái ký hiệu <strong>V</strong>. Bạn cần đo cường độ dòng điện chạy qua bóng đèn. Bạn dùng dụng cụ nào và mắc nó như thế nào?`,
+    choices: [
+      { text: "Dùng Vôn kế (V), mắc song song với bóng đèn", correct: false },
+      { text: "Dùng Ampe kế (A), mắc nối tiếp với bóng đèn", correct: true },
+      { text: "Dùng Ampe kế (A), mắc song song với bóng đèn", correct: false }
+    ],
+    correct: "🎉 Chính xác! Ampe kế đo cường độ dòng điện, phải mắc nối tiếp. Vôn kế đo hiệu điện thế, mắc song song.",
+    wrong: "❌ Sai rồi! Ampe kế (A) đo cường độ dòng điện và phải mắc nối tiếp với bóng đèn."
+  },
+  {
+    title: "🔧 Xưởng mạ điện — Chìa khóa Niken",
+    text: `Chủ xưởng muốn mạ Niken lên chiếc <strong>chìa khóa thép</strong>. Bạn cần chuẩn bị: chiếc chìa khóa, tấm Niken, và bình dung dịch muối Niken. Chiếc chìa khóa phải được nối với cực nào của nguồn điện?`,
+    choices: [
+      { text: "Cực dương (+) — để thu hút ion Niken", correct: false },
+      { text: "Cực âm (−) — để Niken bám vào bề mặt", correct: true },
+      { text: "Không cần nối — ngâm vào là đủ", correct: false }
+    ],
+    correct: "🎉 Đúng! Chiếc chìa khóa nối cực âm (−). Tấm Niken nối cực dương (+). Khi dòng điện chạy qua, ion Niken bám lên chìa khóa.",
+    wrong: "❌ Sai! Chìa khóa cần nối cực âm (−). Niken sẽ từ cực dương di chuyển và bám lên bề mặt chìa khóa."
+  },
+  {
+    title: "🍳 Nhà bếp — Làm nóng chảo",
+    text: `Mẹ bạn cọ xát chiếc chảo đồng lên mặt bàn gỗ nhiều lần — chảo nóng lên. Sau đó mẹ đặt chảo lên bếp lửa — chảo càng nóng hơn. Hai hành động này thay đổi nhiệt năng theo cách nào?`,
+    choices: [
+      { text: "Cả hai đều là truyền nhiệt", correct: false },
+      { text: "Cả hai đều là thực hiện công", correct: false },
+      { text: "Cọ xát = thực hiện công; Bếp lửa = truyền nhiệt", correct: true }
+    ],
+    correct: "🎉 Hoàn toàn đúng! Cọ xát = thực hiện công cơ học → sinh nhiệt. Đặt trên lửa = truyền nhiệt từ ngọn lửa sang chảo.",
+    wrong: "❌ Chưa đúng! Cọ xát là thực hiện công (cơ học → nhiệt). Đặt trên lửa là truyền nhiệt (nhiệt từ lửa truyền sang chảo)."
+  },
+  {
+    title: "💡 Phòng khách — Bóng đèn và bàn là",
+    text: `Bạn quan sát: <strong>bóng đèn</strong> sáng lên khi có điện, và <strong>bàn là</strong> nóng lên khi cắm điện. Đây là các tác dụng nào của dòng điện?`,
+    choices: [
+      { text: "Bóng đèn = tác dụng nhiệt; Bàn là = tác dụng phát sáng", correct: false },
+      { text: "Bóng đèn = tác dụng phát sáng; Bàn là = tác dụng nhiệt", correct: true },
+      { text: "Cả hai đều là tác dụng hóa học", correct: false }
+    ],
+    correct: "🎉 Chính xác! Bóng đèn → tác dụng phát sáng. Bàn là → tác dụng nhiệt (dòng điện làm nóng dây điện trở).",
+    wrong: "❌ Nhầm rồi! Bóng đèn = tác dụng phát sáng. Bàn là = tác dụng nhiệt. Hai tác dụng khác nhau nhé!"
+  }
+];
+
+// ===========================
+// STATE
+// ===========================
+let state = {
+  totalXP: parseInt(localStorage.getItem('vl_xp') || '0'),
+  streak: parseInt(localStorage.getItem('vl_streak') || '0'),
+  games: parseInt(localStorage.getItem('vl_games') || '0'),
+  currentMode: null,
+  quizIdx: 0,
+  quizScore: 0,
+  quizOrder: [],
+  flashIdx: 0,
+  flashKnown: 0,
+  flashOrder: [],
+  matchSelected: null,
+  matchSelectedSide: null,
+  matchScore: 0,
+  matchPairs: [],
+  storyIdx: 0,
+  storyScore: 0
+};
+
+function saveState() {
+  localStorage.setItem('vl_xp', state.totalXP);
+  localStorage.setItem('vl_streak', state.streak);
+  localStorage.setItem('vl_games', state.games);
+}
+
+function updateHomeBanner() {
+  document.getElementById('home-total').textContent = state.totalXP;
+  document.getElementById('home-streak').textContent = state.streak + '🔥';
+  document.getElementById('home-games').textContent = state.games;
+}
+
+// ===========================
+// NAVIGATION
+// ===========================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function goHome() {
+  updateHomeBanner();
+  showScreen('home');
+}
+
+function startMode(mode) {
+  state.currentMode = mode;
+  if (mode === 'quiz') startQuiz();
+  else if (mode === 'flash') startFlash();
+  else if (mode === 'match') startMatch();
+  else if (mode === 'story') startStory();
+}
+
+// ===========================
+// QUIZ
+// ===========================
+function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
+
+function startQuiz() {
+  state.quizIdx = 0;
+  state.quizScore = 0;
+  state.quizOrder = shuffle([...Array(quizQuestions.length).keys()]).slice(0, 10);
+  showScreen('quiz-screen');
+  renderQuiz();
+}
+
+function renderQuiz() {
+  const idx = state.quizOrder[state.quizIdx];
+  const q = quizQuestions[idx];
+  document.getElementById('quiz-qnum').textContent = state.quizIdx + 1;
+  document.getElementById('quiz-progress').style.width = ((state.quizIdx + 1) / 10 * 100) + '%';
+  document.getElementById('quiz-score').textContent = state.quizScore;
+  document.getElementById('quiz-question').textContent = q.q;
+
+  const optsEl = document.getElementById('quiz-options');
+  optsEl.innerHTML = '';
+  const shuffledOpts = shuffle(q.opts.map((o, i) => ({ text: o, origIdx: i })));
+
+  shuffledOpts.forEach(({ text, origIdx }) => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-opt';
+    btn.textContent = text;
+    btn.onclick = () => selectQuizAnswer(btn, origIdx === q.ans, q.explain, optsEl, q.ans, shuffledOpts);
+    optsEl.appendChild(btn);
+  });
+
+  document.getElementById('quiz-feedback').className = 'feedback-box';
+  document.getElementById('quiz-feedback').textContent = '';
+  document.getElementById('quiz-next').className = 'btn-next';
+}
+
+function selectQuizAnswer(btn, isCorrect, explain, optsEl, correctOrigIdx, shuffledOpts) {
+  const allBtns = optsEl.querySelectorAll('.quiz-opt');
+  allBtns.forEach(b => b.disabled = true);
+
+  // highlight correct
+  shuffledOpts.forEach(({ origIdx }, i) => {
+    if (origIdx === correctOrigIdx) allBtns[i].classList.add('correct');
+  });
+
+  if (isCorrect) {
+    btn.classList.add('correct');
+    state.quizScore += 10;
+    document.getElementById('quiz-score').textContent = state.quizScore;
+    const fb = document.getElementById('quiz-feedback');
+    fb.className = 'feedback-box correct show';
+    fb.textContent = explain;
+  } else {
+    btn.classList.add('wrong');
+    const fb = document.getElementById('quiz-feedback');
+    fb.className = 'feedback-box wrong show';
+    fb.textContent = explain;
+  }
+
+  document.getElementById('quiz-next').className = 'btn-next show';
+}
+
+function nextQuiz() {
+  state.quizIdx++;
+  if (state.quizIdx >= 10) {
+    endGame('quiz');
+  } else {
+    renderQuiz();
+  }
+}
+
+// ===========================
+// FLASHCARD
+// ===========================
+function startFlash() {
+  state.flashIdx = 0;
+  state.flashKnown = 0;
+  state.flashOrder = shuffle([...Array(flashCards.length).keys()]);
+  showScreen('flash-screen');
+  renderFlash();
+}
+
+function renderFlash() {
+  const card = document.getElementById('flash-card');
+  card.classList.remove('flipped');
+  const idx = state.flashOrder[state.flashIdx];
+  const fc = flashCards[idx];
+  document.getElementById('flash-term').textContent = fc.term;
+  document.getElementById('flash-def').textContent = fc.def;
+  document.getElementById('flash-example').textContent = fc.ex;
+  document.getElementById('flash-known').textContent = state.flashKnown;
+  document.getElementById('flash-counter').textContent = `Thẻ ${state.flashIdx + 1} / ${flashCards.length}`;
+}
+
+function flipCard() {
+  document.getElementById('flash-card').classList.toggle('flipped');
+}
+
+function flashAnswer(known) {
+  if (known) state.flashKnown++;
+  state.flashIdx++;
+  if (state.flashIdx >= flashCards.length) {
+    endGame('flash');
+  } else {
+    renderFlash();
+  }
+}
+
+// ===========================
+// MATCH
+// ===========================
+function startMatch() {
+  state.matchSelected = null;
+  state.matchSelectedSide = null;
+  state.matchScore = 0;
+  state.matchPairs = shuffle(matchPairs);
+  showScreen('match-screen');
+  renderMatch();
+}
+
+function renderMatch() {
+  const leftCol = document.getElementById('match-left');
+  const rightCol = document.getElementById('match-right');
+  leftCol.innerHTML = '';
+  rightCol.innerHTML = '';
+
+  document.getElementById('match-score').textContent = '0';
+
+  const shuffledLeft = shuffle(state.matchPairs.map((p, i) => ({ ...p, idx: i })));
+  const shuffledRight = shuffle(state.matchPairs.map((p, i) => ({ ...p, idx: i })));
+
+  shuffledLeft.forEach(pair => {
+    const el = document.createElement('div');
+    el.className = 'match-item';
+    el.textContent = pair.left;
+    el.dataset.idx = pair.idx;
+    el.dataset.side = 'left';
+    el.onclick = () => selectMatchItem(el);
+    leftCol.appendChild(el);
+  });
+
+  shuffledRight.forEach(pair => {
+    const el = document.createElement('div');
+    el.className = 'match-item';
+    el.textContent = pair.right;
+    el.dataset.idx = pair.idx;
+    el.dataset.side = 'right';
+    el.onclick = () => selectMatchItem(el);
+    rightCol.appendChild(el);
+  });
+}
+
+function selectMatchItem(el) {
+  if (el.classList.contains('matched')) return;
+  const side = el.dataset.side;
+  const idx = parseInt(el.dataset.idx);
+
+  if (!state.matchSelected) {
+    state.matchSelected = el;
+    state.matchSelectedSide = side;
+    el.classList.add('selected');
+    return;
+  }
+
+  if (state.matchSelectedSide === side) {
+    state.matchSelected.classList.remove('selected');
+    state.matchSelected = el;
+    state.matchSelectedSide = side;
+    el.classList.add('selected');
+    return;
+  }
+
+  const prevEl = state.matchSelected;
+  const prevIdx = parseInt(prevEl.dataset.idx);
+
+  if (prevIdx === idx) {
+    // Match!
+    el.classList.add('matched');
+    prevEl.classList.remove('selected');
+    prevEl.classList.add('matched');
+    state.matchScore++;
+    document.getElementById('match-score').textContent = state.matchScore;
+    if (state.matchScore >= matchPairs.length) {
+      setTimeout(() => endGame('match'), 600);
+    }
+  } else {
+    // Wrong
+    el.classList.add('wrong-flash');
+    prevEl.classList.add('wrong-flash');
+    setTimeout(() => {
+      el.classList.remove('wrong-flash');
+      prevEl.classList.remove('wrong-flash');
+    }, 400);
+  }
+
+  prevEl.classList.remove('selected');
+  state.matchSelected = null;
+  state.matchSelectedSide = null;
+}
+
+// ===========================
+// STORY
+// ===========================
+function startStory() {
+  state.storyIdx = 0;
+  state.storyScore = 0;
+  showScreen('story-screen');
+  renderStory();
+}
+
+function renderStory() {
+  const s = storyScenes[state.storyIdx];
+  document.getElementById('story-snum').textContent = state.storyIdx + 1;
+  document.getElementById('story-progress').style.width = ((state.storyIdx + 1) / storyScenes.length * 100) + '%';
+  document.getElementById('story-score').textContent = state.storyScore;
+  document.getElementById('story-scene-title').textContent = s.title;
+  document.getElementById('story-text').innerHTML = s.text;
+
+  const choicesEl = document.getElementById('story-choices');
+  choicesEl.innerHTML = '';
+  const outcome = document.getElementById('story-outcome');
+  outcome.className = 'story-outcome';
+  outcome.textContent = '';
+  document.getElementById('story-next').className = 'btn-next';
+
+  shuffle(s.choices).forEach(choice => {
+    const btn = document.createElement('button');
+    btn.className = 'story-choice';
+    btn.textContent = choice.text;
+    btn.onclick = () => selectStoryChoice(btn, choice.correct, s, choicesEl);
+    choicesEl.appendChild(btn);
+  });
+}
+
+function selectStoryChoice(btn, isCorrect, scene, choicesEl) {
+  choicesEl.querySelectorAll('.story-choice').forEach(b => b.disabled = true);
+  const outcome = document.getElementById('story-outcome');
+
+  if (isCorrect) {
+    btn.classList.add('correct');
+    state.storyScore += 20;
+    document.getElementById('story-score').textContent = state.storyScore;
+    outcome.className = 'story-outcome correct show';
+    outcome.textContent = scene.correct;
+  } else {
+    btn.classList.add('wrong');
+    // highlight correct
+    choicesEl.querySelectorAll('.story-choice').forEach(b => {
+      if (scene.choices.find(c => c.text === b.textContent && c.correct)) b.classList.add('correct');
+    });
+    outcome.className = 'story-outcome wrong show';
+    outcome.textContent = scene.wrong;
+  }
+
+  document.getElementById('story-next').className = 'btn-next show';
+}
+
+function nextStory() {
+  state.storyIdx++;
+  if (state.storyIdx >= storyScenes.length) {
+    endGame('story');
+  } else {
+    renderStory();
+  }
+}
+
+// ===========================
+// END GAME
+// ===========================
+function endGame(mode) {
+  state.games++;
+  let score, max, emoji, title, message, replayFn;
+
+  if (mode === 'quiz') {
+    score = state.quizScore; max = 100;
+    emoji = score >= 80 ? '🏆' : score >= 50 ? '👍' : '💪';
+    title = score >= 80 ? 'XUẤT SẮC!' : score >= 50 ? 'TỐT LẮM!' : 'CỐ LÊN!';
+    message = `Bạn đạt ${score}/100 điểm trong bài trắc nghiệm Vật Lý!`;
+    replayFn = 'startQuiz()';
+    state.totalXP += score;
+  } else if (mode === 'flash') {
+    score = state.flashKnown; max = flashCards.length;
+    emoji = score >= 10 ? '🏆' : score >= 7 ? '👍' : '📚';
+    title = score >= 10 ? 'THÀNH THẠO!' : 'TIẾP TỤC ÔN!';
+    message = `Bạn đã nhớ ${score}/${max} thẻ Flashcard!`;
+    replayFn = 'startFlash()';
+    state.totalXP += score * 5;
+  } else if (mode === 'match') {
+    score = state.matchScore; max = matchPairs.length;
+    emoji = '🏆';
+    title = 'GHÉP ĐÔI HOÀN TẤT!';
+    message = `Bạn đã ghép đúng ${score}/${max} cặp!`;
+    replayFn = 'startMatch()';
+    state.totalXP += score * 15;
+  } else if (mode === 'story') {
+    score = state.storyScore; max = storyScenes.length * 20;
+    emoji = score >= 80 ? '🌟' : score >= 40 ? '👍' : '📖';
+    title = score >= 80 ? 'NHÀ VẬT LÝ!' : 'GHI NHỚ THÊM!';
+    message = `Bạn đạt ${score}/${max} điểm trong chế độ Câu chuyện!`;
+    replayFn = 'startStory()';
+    state.totalXP += score;
+  }
+
+  state.streak = (mode !== 'flash' && score >= max * 0.5) ? state.streak + 1 : 0;
+  saveState();
+
+  document.getElementById('result-emoji').textContent = emoji;
+  document.getElementById('result-title').textContent = title;
+  document.getElementById('result-score').textContent = `${score} / ${max}`;
+  document.getElementById('result-message').textContent = message;
+  document.getElementById('result-replay').onclick = new Function(replayFn);
+
+  showScreen('result');
+}
+
+// ===========================
+// INIT
+// ===========================
+updateHomeBanner();
+</script>
+</body>
+</html>
